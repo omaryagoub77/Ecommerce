@@ -1,9 +1,10 @@
 // src/pages/ShopPage.jsx
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs,onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import Cart from "../components/Cart";
-import ProductList from "../components/ProductList";
+import CartPurchasePage from "../components/CartPurchasePage";
+
 
 const ShopPage = () => {
   const [products, setProducts] = useState([]);
@@ -59,23 +60,59 @@ const ShopPage = () => {
     setCart([]);
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h1>Shop Page</h1>
-      <ProductList products={products} addToCart={addToCart} />
-      <Cart
-        cart={cart}
-        increaseQty={increaseQty}
-        decreaseQty={decreaseQty}
-        removeItem={removeItem}
-        clearCart={clearCart}
-      />
-    </div>
+useEffect(() => {
+  const unsubscribe = onSnapshot(
+    collection(db, "products"),
+    (snapshot) => {
+      console.log("Snapshot received:", snapshot.docs.length);
+      const productData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setProducts(productData);
+    },
+    (error) => {
+      console.error("onSnapshot error:", error);
+    }
   );
+
+  return () => unsubscribe();
+}, []);
+return (
+  <div style={{ padding: "20px" }}>
+    <h1>Shop Page</h1>
+<div className="product-list">
+  {products.map((product) => (
+    <div key={product.id} className="product-card">
+      <img src={product.image} alt={product.name} />
+      <h3>{product.name}</h3>
+      <p>${product.price}</p>
+      <button onClick={() => addToCart(product.id)}>Add to Cart</button>
+    </div>
+  ))}
+</div>
+
+ <CartPurchasePage
+  cart={cart}
+  increaseQty={increaseQty}
+  decreaseQty={decreaseQty}
+  removeItem={removeItem}
+  clearCart={clearCart}
+/>
+
+
+    <Cart
+      cart={cart}
+      increaseQty={increaseQty}
+      decreaseQty={decreaseQty}
+      removeItem={removeItem}
+      clearCart={clearCart}
+      products={products}
+      addToCart={addToCart}
+    />
+  </div>
+);
+
 };
 
 export default ShopPage;

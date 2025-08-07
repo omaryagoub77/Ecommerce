@@ -1,41 +1,88 @@
+// src/pages/CartPurchasePage.jsx
+import React, { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import React from "react";
 
-const Cart = ({ cart = [], increaseQty, decreaseQty, removeItem, clearCart }) => {
-  // Safe default fallback for cart
+const CartPurchasePage = ({
+  cart = [],
+  increaseQty,
+  decreaseQty,
+  removeItem,
+  clearCart,
+}) => {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const handlePurchase = async () => {
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.phone || !form.address) {
+      setMessage("Please fill in all fields.");
+      return;
+    }
+
     if (cart.length === 0) {
-      alert("Cart is empty!");
+      setMessage("Your cart is empty.");
       return;
     }
 
     try {
+      setLoading(true);
       const docRef = await addDoc(collection(db, "orders"), {
+        client: form,
         items: cart,
-        timestamp: new Date().toISOString()
+        total,
+        timestamp: new Date(),
       });
-      alert("Order placed successfully! ID: " + docRef.id);
-      clearCart(); // Optional: clear cart after order
+      setMessage(`Order placed! ID: ${docRef.id}`);
+      clearCart();
+      setForm({ name: "", email: "", phone: "", address: "" });
     } catch (error) {
-      console.error("Error adding order: ", error);
-      alert("Failed to place order.");
+      console.error("Error placing order:", error);
+      setMessage("Failed to place order. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <section id="cart" style={{ padding: "20px", backgroundColor: "#f9f9f9" }}>
-      <h2>Your Cart</h2>
+    <section style={{ padding: "20px" }}>
+      <h2>rrrrrrrrrrrrrrrrrrrrrrrrrrrr</h2>
+
+      {message && <p>{message}</p>}
+
       {cart.length === 0 ? (
         <p>Your cart is empty.</p>
       ) : (
         <>
           <div className="cart-items">
-            {cart.map(item => (
-              <div key={item.id} className="cart-item" style={{ marginBottom: "15px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <img src={item.image} alt={item.name} style={{ width: "50px", height: "50px", objectFit: "cover" }} />
+            {cart.map((item) => (
+              <div
+                key={item.id}
+                className="cart-item"
+                style={{
+                  marginBottom: "15px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  style={{ width: "50px", height: "50px", objectFit: "cover" }}
+                />
                 <span>{item.name}</span>
                 <span>${item.price.toFixed(2)}</span>
                 <div>
@@ -43,18 +90,74 @@ const Cart = ({ cart = [], increaseQty, decreaseQty, removeItem, clearCart }) =>
                   <span style={{ margin: "0 10px" }}>{item.qty}</span>
                   <button onClick={() => increaseQty(item.id)}>+</button>
                 </div>
-                <button onClick={() => removeItem(item.id)} className="remove-btn">Remove</button>
+                <button onClick={() => removeItem(item.id)}>Remove</button>
               </div>
             ))}
           </div>
-          <div className="cart-total" style={{ marginTop: "20px" }}>
-            <p><strong>Total:</strong> ${total.toFixed(2)}</p>
-            <button className="add-to-cart" onClick={handlePurchase}>Purchase</button>
+
+          <div style={{ marginTop: "20px" }}>
+            <p>
+              <strong>Total:</strong> ${total.toFixed(2)}
+            </p>
           </div>
+
+          <hr style={{ margin: "20px 0" }} />
+
+          <form onSubmit={handleSubmit} style={{ maxWidth: "400px" }}>
+            <h3>Enter Your Details</h3>
+            <input
+              name="name"
+              placeholder="Full Name"
+              value={form.name}
+              onChange={handleChange}
+              style={{ display: "block", marginBottom: 10, width: "100%" }}
+            />
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              style={{ display: "block", marginBottom: 10, width: "100%" }}
+            />
+            <input
+              name="phone"
+              placeholder="Phone Number"
+              value={form.phone}
+              onChange={handleChange}
+              style={{ display: "block", marginBottom: 10, width: "100%" }}
+            />
+            <textarea
+              name="address"
+              placeholder="Shipping Address"
+              value={form.address}
+              onChange={handleChange}
+              style={{
+                display: "block",
+                marginBottom: 10,
+                width: "100%",
+                height: 80,
+              }}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                border: "none",
+                borderRadius: 4,
+                cursor: "pointer",
+              }}
+            >
+              {loading ? "Placing Order..." : "Place Order"}
+            </button>
+          </form>
         </>
       )}
     </section>
   );
 };
 
-export default Cart;
+export default CartPurchasePage;
