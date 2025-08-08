@@ -2,13 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs,onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import Cart from "../components/Cart";
+// import Cart from "../components/Cart";
 import CartPurchasePage from "../components/CartPurchasePage";
+import '../App.css'
+import { ShoppingCart } from 'lucide-react';
 
 
 const ShopPage = () => {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
+    const [showWhiteBackground, setShowWhiteBackground] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -22,7 +25,7 @@ const ShopPage = () => {
       console.error("Error fetching products:", error);
     }
   };
-
+fetchProducts()
   // 🔑 This is the key: it updates the cart when user clicks add
   const addToCart = (productId) => {
     const product = products.find(p => p.id === productId);
@@ -79,20 +82,42 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 return (
-  <div style={{ padding: "20px" }}>
-    <h1>Shop Page</h1>
+  <div className='cards-container' style={{ padding: "20px" }}>
+    <h1 className='head-text'>Shop Page</h1>
 <div className="product-list">
   {products.map((product) => (
     <div key={product.id} className="product-card">
       <img src={product.image} alt={product.name} />
       <h3>{product.name}</h3>
-      <p>${product.price}</p>
-      <button onClick={() => addToCart(product.id)}>Add to Cart</button>
+      <p>{product.det}</p>
+      <h2>${product.price}</h2>
+      <button onClick={() => addToCart(product.id)}>
+        Add to  
+        <ShoppingCart
+              size={27}
+              className='Cart-icon-product'
+              style={{ cursor: "pointer" }}
+              />
+              </button>
+      
     </div>
+
   ))}
+  <div className="cart">
+
+              <ShoppingCart
+              size={28}
+              color="#333"
+              className='Cart-icon'
+              style={{ cursor: "pointer" }}
+              onClick={() => setShowWhiteBackground(prev => !prev)} // 👈 sets the white bg
+              />
+              <span className='Cart-icon span'>{cart.reduce((acc, item) => acc + item.qty, 0)}</span>
+  </div>
 </div>
 
  <CartPurchasePage
+ showWhiteBackground={showWhiteBackground}  
   cart={cart}
   increaseQty={increaseQty}
   decreaseQty={decreaseQty}
@@ -101,7 +126,7 @@ return (
 />
 
 
-    <Cart
+    {/* <Cart
       cart={cart}
       increaseQty={increaseQty}
       decreaseQty={decreaseQty}
@@ -109,7 +134,7 @@ return (
       clearCart={clearCart}
       products={products}
       addToCart={addToCart}
-    />
+    /> */}
   </div>
 );
 

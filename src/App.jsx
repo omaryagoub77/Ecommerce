@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import ShopPage from "./pages/ShopPage";
 import Cart from "./components/Cart";
-import './index.css';
+// import './index.css';
 import './App.css';
+import { ShoppingCart } from "lucide-react";
 
 function App() {
   const [cart, setCart] = useState([]);
@@ -18,7 +19,7 @@ function App() {
           <div className="links">
             <Link className="link" to="/shop">Shop</Link>
             <br />
-            <Link className="link" to="/cart">Cart</Link>
+            
           </div>
         </div>
       </header>
@@ -33,7 +34,7 @@ function App() {
         <Route
           path="/shop"
           element={
-            <ShopPage cart={cart} setCart={setCart} clearCart={clearCart} />
+            <ShopPage  cart={cart} setCart={setCart} clearCart={clearCart} />
           }
         />
         <Route

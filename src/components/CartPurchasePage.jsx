@@ -11,6 +11,7 @@ const CartPurchasePage = ({
   decreaseQty,
   removeItem,
   clearCart,
+  showWhiteBackground 
 }) => {
   const [form, setForm] = useState({
     name: "",
@@ -73,13 +74,15 @@ const CartPurchasePage = ({
   // Clear message after 4 seconds
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => setMessage(""), 4000);
+      const timer = setTimeout(() => setMessage(""), 1000);
       return () => clearTimeout(timer);
     }
   }, [message]);
 
   return (
-    <section className="purchase-container">
+    <section className="purchase-container"   style={{
+        display: showWhiteBackground ? "block" : "none",
+      }}>
       <h2 className="purchase-title">🛒 Your Cart & Checkout</h2>
 
       {message && (
@@ -89,7 +92,7 @@ const CartPurchasePage = ({
       )}
 
       {cart.length === 0 ? (
-        <p className="empty-cart">pty.</p>
+        <p className="empty-cart">Your cart is empty.</p>
       ) : (
         <>
           <div className="cart-items">
@@ -134,6 +137,7 @@ const CartPurchasePage = ({
           </div>
 
           <hr className="divider" />
+          <h1 style={{textAlign: "center",color:"white ",backgroundColor: 'brown'}}>Purchase</h1>
 
           <form onSubmit={handleSubmit} className="checkout-form">
             <h3>Enter Your Details</h3>
