@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import '../App.css';
 
 const CartPurchasePage = ({
   cart = [],
@@ -85,10 +86,10 @@ const CartPurchasePage = ({
                 />
                 <span>{item.name}</span>
                 <span>${item.price.toFixed(2)}</span>
-                <div>
-                  <button onClick={() => decreaseQty(item.id)}>−</button>
+                <div className="quantity-controls">
+                  <button className="encrease" onClick={() => decreaseQty(item.id)}>−</button>
                   <span style={{ margin: "0 10px" }}>{item.qty}</span>
-                  <button onClick={() => increaseQty(item.id)}>+</button>
+                  <button className="decrease"  onClick={() => increaseQty(item.id)}>+</button>
                 </div>
                 <button onClick={() => removeItem(item.id)}>Remove</button>
               </div>
@@ -144,7 +145,7 @@ const CartPurchasePage = ({
               disabled={loading}
               style={{
                 padding: "10px 20px",
-                backgroundColor: "#007bff",
+                backgroundColor: "#b32806",
                 color: "#fff",
                 border: "none",
                 borderRadius: 4,

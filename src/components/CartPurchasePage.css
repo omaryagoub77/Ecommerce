@@ -208,10 +208,53 @@
 }
 .message{
   position: absolute;
+  top: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #e7ffe0;
+  color: rgb(94, 255, 0);
+  border-color: rgb(123, 255, 0);
+}
+.error-message {
+  position: absolute;
+  padding: 14px;
+  border-radius: 5px;
   top: 450px;
   left: 50%;
   transform: translateX(-50%);
   background-color: #ffe0e0;
-  color: red;
-  border-color: red;
+  color: #ff0000;
+  border-color: #ff4d4d;
+}
+.remove-btn{
+  background-color: #f31111 !important; /* Indigo-600 */
+  color: #ffffff;
+  border: none;
+  border-radius: 5px !important;
+  cursor: pointer;
+  padding: 5px 10px !important;
+  font-size: 16px !important;
+}
+.cart-item-price{
+  color: #000000;
+  font-size: 23px !important;
+  font-weight: bold;
+}
+.qty{
+  font-size: 20px !important;
+  font-weight: bold;
+  color: #525151;
+  margin: 0 10px;
+}
+.cart-total{
+  font-size: 28px;
+  /* font-weight: ; */
+  color: #333;
+  text-align: right;
+  margin-top: 20px;
+}
+.purchase{
+  font-size: 29px;
+  padding: 10px;
+  border-radius: 5px;
 }

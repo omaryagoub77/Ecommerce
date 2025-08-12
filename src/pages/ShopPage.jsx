@@ -92,9 +92,9 @@ return (
       <p>{product.det}</p>
       <h2>${product.price}</h2>
       <button onClick={() => addToCart(product.id)}>
-        Add to  
+       
         <ShoppingCart
-              size={27}
+              size={25}
               className='Cart-icon-product'
               style={{ cursor: "pointer" }}
               />

@@ -14,6 +14,8 @@ function App() {
   return (
     <Router>
       <header>
+          
+        <nav>
         <div className="nav">
           <h1 className="logo">Small Shop</h1>
           <div className="links">
@@ -22,6 +24,7 @@ function App() {
             
           </div>
         </div>
+        </nav>
       </header>
 
       <Routes>

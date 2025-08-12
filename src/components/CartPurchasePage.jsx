@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import "./CartPurchasePage.css";
+import '../App.css';
 
 const CartPurchasePage = ({
   cart = [],
@@ -21,6 +22,7 @@ const CartPurchasePage = ({
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [errormessage, setErrormessage] = useState("");
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
@@ -38,17 +40,17 @@ const CartPurchasePage = ({
     e.preventDefault();
 
     if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim()) {
-      setMessage("Please fill in all fields.");
+      setErrormessage("Please fill in all fields.");
       return;
     }
 
     if (!validateEmail(form.email)) {
-      setMessage("Please enter a valid email address.");
+      setErrormessage("Please enter a valid email address.");
       return;
     }
 
     if (cart.length === 0) {
-      setMessage("Your cart is empty.");
+      setErrormessage("Your cart is empty.");
       return;
     }
 
@@ -60,7 +62,7 @@ const CartPurchasePage = ({
         total,
         timestamp: new Date().toISOString(),
       });
-      setMessage(`Order placed! ID: ${docRef.id}`);
+      setMessage(`Order placed! `);
       clearCart();
       setForm({ name: "", email: "", phone: "", address: "" });
     } catch (error) {
@@ -74,10 +76,16 @@ const CartPurchasePage = ({
   // Clear message after 4 seconds
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => setMessage(""), 1000);
+      const timer = setTimeout(() => setMessage(""), 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
+    useEffect(() => {
+    if (errormessage ) {
+      const timer = setTimeout(() => setErrormessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errormessage]);
 
   return (
     <section className="purchase-container"   style={{
@@ -88,6 +96,11 @@ const CartPurchasePage = ({
       {message && (
         <p className="message" aria-live="polite">
           {message}
+        </p>
+      )}
+         {errormessage && (
+        <p className="error-message" aria-live="polite">
+          {errormessage}
         </p>
       )}
 
@@ -110,7 +123,7 @@ const CartPurchasePage = ({
                   >
                     −
                   </button>
-                  <span>{item.qty}</span>
+                  <span className="qty">{item.qty}</span>
                   <button
                     type="button"
                     onClick={() => increaseQty(item.id)}
@@ -133,11 +146,11 @@ const CartPurchasePage = ({
           </div>
 
           <div className="cart-total">
-            <strong>Total:</strong> ${total.toFixed(2)}
+            Total: <strong>${total.toFixed(2)}</strong> 
           </div>
 
           <hr className="divider" />
-          <h1 style={{textAlign: "center",color:"white ",backgroundColor: 'brown'}}>Purchase</h1>
+          <h1 className="purchase" style={{textAlign: "center",color:"white ",backgroundColor: '#b32806'}}>Purchase</h1>
 
           <form onSubmit={handleSubmit} className="checkout-form">
             <h3>Enter Your Details</h3>

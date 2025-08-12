@@ -18,11 +18,12 @@ body{
 /* Wrapper to center and style the nav */
 .nav {
   /* background: transparent; */
-  background-color: #ffffff;
+  background-color: #853434;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.068);
   border-radius: 5px;
+  position: relative;
   padding: 15px 30px;
-  width: 100%;
+  width: 100vh;
   /* max-width: 1000px; */
   display: flex;
   justify-content: space-between;
@@ -114,15 +115,15 @@ body{
 }
 
 .product-card button {
-  padding: 5px 9px 10px 5px;
-  background-color: #801a01; /* Indigo-600 */
+  padding: 9px 1px 9px 7px;
+  background-color: #b32806; /* Indigo-600 */
   color: #ffffff;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   cursor: pointer;
-  width: 150px;
+  width: 50px;
   font-weight: 500;
-  text-align: center;
+  /* text-align: center; */
   font-size: 18px;
   transition: background-color 0.2s ease;
 }
@@ -133,7 +134,7 @@ body{
 }
 
 .product-card button:hover {
-  background-color: #581201; /* Indigo-700 */
+  background-color: #791901; /* Indigo-700 */
 }
 
 .Cart-icon{
@@ -152,4 +153,27 @@ color: white;
 width: 20px;
 text-align: center;
 right: 145px;
+}
+.cart-item-qty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cart-item-qty button {
+  background-color: #b32806; /* Indigo-600 */
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 16px;
+}
+.qty-btn {
+  background-color: #b32806 !important; /* Indigo-600 */
+  color: #ffffff;
+  border: none;
+  border-radius: 50% !important;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 19px !important;
 }
