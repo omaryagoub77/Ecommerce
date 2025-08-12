@@ -4,9 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "homepage": "https://o929.github.io/Shop",
-
-  
-  
   "scripts": {
     "dev": "vite",
     "build": "vite build",
