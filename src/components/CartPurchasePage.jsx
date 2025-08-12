@@ -82,7 +82,7 @@ const CartPurchasePage = ({
   }, [message]);
     useEffect(() => {
     if (errormessage ) {
-      const timer = setTimeout(() => setErrormessage(""), 3000);
+      const timer = setTimeout(() => setErrormessage(""), 1000);
       return () => clearTimeout(timer);
     }
   }, [errormessage]);
