@@ -6,6 +6,7 @@ import ProductCard from "../components/ProductCard";
 import CartSlideout from "../components/CartSlideout";
 import CheckoutModal from "../components/CheckoutModal";
 import { ShoppingCart } from 'lucide-react';
+import '../App.css';
 
 const ShopPage = () => {
   const [products, setProducts] = useState([]);
@@ -97,11 +98,31 @@ const ShopPage = () => {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
-          <p className="text-gray-600">Discover our curated collection of premium items</p>
-        </div>
+<div className="hero-section flex flex-col md:flex-row items-center gap-6 bg-gray-50 p-8 rounded-lg  mb-12">
+  {/* Text Content */}
+  <div className="hero-text flex-1">
+    <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      Featured Products
+    </h2>
+    <p className="text-gray-600 mb-6">
+      Discover our curated collection of premium items. Handpicked for quality and style.
+    </p>
+    <button className="hero-btn bg-[transparent] border-2 text-gray px-6 py-3 rounded-[30px] font-semibold hover:bg-amber-700 hover:border-amber-200 transition-colors">
+      Shop Now
+    </button>
+  </div>
 
+  {/* Image */}
+  <div className="hero-image flex-1">
+    <img
+      src="../public/image.jpg"
+      alt="Featured Product"
+      className="w-full h-auto rounded-lg shadow-lg"
+    />
+  </div>
+</div>
+
+     <h1>Men</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map(product => (
             <ProductCard

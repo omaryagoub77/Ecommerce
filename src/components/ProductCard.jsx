@@ -1,7 +1,7 @@
 import { ShoppingCart } from "lucide-react";
 
 export default function ProductCard({ product, onAddToCart }) {
-  return (
+  return (<>
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <img 
         src={product.image} 
@@ -14,6 +14,10 @@ export default function ProductCard({ product, onAddToCart }) {
         </h3>
         <p className="text-gray-600 text-sm mb-3">
           {product.det || product.description}
+        </p>
+          <h1>Type</h1>
+         <p className="text-gray-600 text-sm mb-3">
+          {product.category || product.description}
         </p>
         <div className="flex items-center justify-between">
           <span className="text-2xl font-bold text-red-700">
@@ -28,6 +32,8 @@ export default function ProductCard({ product, onAddToCart }) {
           </button>
         </div>
       </div>
+      
     </div>
+  </>
   );
 }
