@@ -39,19 +39,22 @@ export default function CartSlideout({
               <div className="space-y-4">
                 {cart.map(item => (
                   <div key={item.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <img 
-                      src={item.image} 
-                      alt={item.name} 
-                      className="w-12 h-12 object-cover rounded"
-                    />
+                    {/* Only show the first image */}
+                    {item.images?.[0] && (
+                      <img
+                        src={item.images[0]}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                      />
+                    )}
+
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
-                        {item.name}
-                      </h4>
+                      <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
                       <p className="text-sm text-red-700 font-semibold">
                         ${parseFloat(item.price).toFixed(2)}
                       </p>
                     </div>
+
                     <div className="flex items-center space-x-2">
                       <button 
                         onClick={() => onDecreaseQty(item.id)}
@@ -59,9 +62,7 @@ export default function CartSlideout({
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="text-sm font-medium w-8 text-center">
-                        {item.qty}
-                      </span>
+                      <span className="text-sm font-medium w-8 text-center">{item.qty}</span>
                       <button 
                         onClick={() => onIncreaseQty(item.id)}
                         className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
@@ -69,6 +70,7 @@ export default function CartSlideout({
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
+
                     <button 
                       onClick={() => onRemoveItem(item.id)}
                       className="text-red-600 hover:text-red-800 p-1"
@@ -86,9 +88,7 @@ export default function CartSlideout({
             <div className="border-t border-gray-200 p-4 space-y-4">
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span>Total:</span>
-                <span className="text-red-700">
-                  ${total.toFixed(2)}
-                </span>
+                <span className="text-red-700">${total.toFixed(2)}</span>
               </div>
               <button 
                 onClick={onCheckout}

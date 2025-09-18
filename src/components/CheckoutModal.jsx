@@ -103,7 +103,7 @@ export default function CheckoutModal({
               <div className="space-y-2 text-sm">
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between">
-                    <span>{item.name} × {item.qty}</span>
+                    <span><img src={item.image}  alt="" /> {item.name} × {item.qty}</span>
                     <span>${(parseFloat(item.price) * item.qty).toFixed(2)}</span>
                   </div>
                 ))}
