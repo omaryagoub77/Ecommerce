@@ -5,5 +5,5 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(),tailwindcss()],
-  base: '/Shop', // Set the base path for the app
+  base: '/Ecommerce', // Set the base path for the app
 })
