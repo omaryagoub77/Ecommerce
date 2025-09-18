@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://o929.github.io/Shop/",
+  "homepage": "https://o929.github.io/Ecommerce/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
