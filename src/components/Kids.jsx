@@ -60,7 +60,6 @@ const Kids = ({ onAddToCart, favorites = [], onAddToFavorites }) => {
         <div className="text-center">
           <HeartOff className="w-24 h-24 text-gray-300 mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-gray-900 mb-4">No Kids Products</h1>
-          <p className="text-gray-600 mb-6">You haven't added any items to your kids section yet.</p>
         </div>
       </div>
     );
@@ -71,7 +70,6 @@ const Kids = ({ onAddToCart, favorites = [], onAddToFavorites }) => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Kids Products</h1>
-          <p className="text-gray-600">You have {products.length} item{products.length !== 1 ? "s" : ""} in the kids section</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -146,14 +144,7 @@ const Kids = ({ onAddToCart, favorites = [], onAddToFavorites }) => {
             );
           })}
         </div>
-       <div className="mt-12 text-center">
-          <a
-            href="/"
-            className="inline-flex mb-8 items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Continue Shopping
-          </a>
-        </div>
+
       </div>
     </div>
   );

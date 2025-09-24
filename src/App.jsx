@@ -111,7 +111,7 @@ function App() {
           }
         />
         <Route
-          path="/shop"
+          path="/Ecommerce"
           element={
             <ShopPage
               onAddToCart={addToCart}

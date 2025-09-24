@@ -255,7 +255,20 @@
   font-size: 1.1rem;
   margin-bottom: var(--spacing-md);
 }
+.hero-btn {
+  background: transparent;
+  border: 2px solid red;
+  margin-top: 20px;
+  border-radius: 5px;
+  padding: 10px 20px;
+  color: #fd2a2a;
+  transition: all 0.2s;
+}
 
+.hero-btn:hover {
+  background: red;
+  color: #fff;
+}
 .retry-button {
   background: var(--primary-color);
   color: white;
@@ -269,10 +282,7 @@
 .retry-button:hover {
   background: var(--primary-hover);
 }
- .hero-btn:hover{
-      background: red;
-      color: #fff;
-    }
+
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -293,15 +303,7 @@
     font-size: 1rem;
   }
 }
-.hero-btn{
-    background: transparent  ;
-    border: 2px solid red;
-    margin-top: 20px;
-    border-radius: 5px;
-    padding: 10px 20px;
-    color: #fd2a2a ;
-    transition: all 0.2s ;
-   
+
   
   .nav-btn {
     width: 40px;
@@ -319,7 +321,7 @@
   .slide-indicators {
     bottom: var(--spacing-md);
   }
-}
+
 
 @media (max-width: 480px) {
   .hero-slider {
@@ -359,5 +361,40 @@
   
   .indicator {
     border-width: 3px;
+  }
+}
+.slides-container {
+  display: flex;
+  width: 100%;
+  will-change: transform;
+  transition: transform 0.8s ease-in-out; /* default transition */
+}
+
+.slides-container.no-transition {
+  transition: none !important; /* disable transition when jumping */
+}
+
+/* The rest of your CSS for .hero-slider, .slide, etc. */
+
+
+.hero-btn {
+  background: transparent;
+  border: 2px solid red;
+  margin-top: 20px;
+  border-radius: 5px;
+  padding: 10px 20px;
+  color: #fd2a2a;
+  transition: all 0.2s;
+}
+
+.hero-btn:hover {
+  background: red;
+  color: #fff;
+}
+
+/* Hide nav arrows on very small screens */
+@media (max-width: 480px) {
+  .nav-btn {
+    display: none;
   }
 }

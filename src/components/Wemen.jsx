@@ -88,13 +88,7 @@ const Wemen = ({ onAddToCart, onAddToFavorites, favorites = [], searchQuery }) =
           <p className="text-gray-600 text-lg mb-8">
             No women products found matching your search.
           </p>
-          <a
-            href="/"
-            className="inline-flex items-center px-6 py-3 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
-          >
-            <Heart className="w-5 h-5 mr-2" />
-            Start Shopping
-          </a>
+    
         </div>
       </div>
     );
@@ -107,10 +101,6 @@ const Wemen = ({ onAddToCart, onAddToFavorites, favorites = [], searchQuery }) =
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Women Products</h1>
-          <p className="text-gray-600">
-            {filteredProducts.length} product
-            {filteredProducts.length !== 1 ? "s" : ""} available
-          </p>
         </div>
 
         {/* Products Grid */}
@@ -206,15 +196,7 @@ const Wemen = ({ onAddToCart, onAddToFavorites, favorites = [], searchQuery }) =
           })}
         </div>
 
-        {/* Continue Shopping */}
-        <div className="mt-12 text-center">
-          <a
-            href="/"
-            className="inline-flex mb-8 items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Continue Shopping
-          </a>
-        </div>
+   
       </div>
     </div>
   );

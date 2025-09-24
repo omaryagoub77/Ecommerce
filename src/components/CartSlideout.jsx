@@ -1,4 +1,5 @@
-import { X, ShoppingCart, Trash2, Minus, Plus } from "lucide-react";
+import { X, ShoppingCart, Trash2, Minus, Plus, CheckCircle } from "lucide-react";
+import React, { useState } from "react";
 
 export default function CartSlideout({
   isOpen,
@@ -11,72 +12,184 @@ export default function CartSlideout({
   onCheckout,
   total
 }) {
+  const [actionMessage, setActionMessage] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Handle showing action feedback
+  const showActionMessage = (message, type = 'success') => {
+    setActionMessage({ text: message, type });
+    setTimeout(() => setActionMessage(null), 2000);
+  };
+
+  // Handle quantity changes with feedback
+  const handleDecreaseQty = (id) => {
+    onDecreaseQty(id);
+    // showActionMessage("Item quantity decreased");
+  };
+
+  const handleIncreaseQty = (id) => {
+    onIncreaseQty(id);
+    // showActionMessage("Item quantity increased");
+  };
+
+  // Handle item removal with feedback
+  const handleRemoveItem = (id, name) => {
+    onRemoveItem(id);
+    showActionMessage(`${name} removed from cart`);
+  };
+
+  // Handle cart clearing with feedback
+  const handleClearCart = () => {
+    onClearCart();
+    showActionMessage("Cart cleared");
+  };
+
+  // Handle checkout with loading state
+  const handleCheckout = async () => {
+    setIsProcessing(true);
+    try {
+      await onCheckout();
+      showActionMessage("Checkout successful!");
+    } catch (error) {
+      showActionMessage("Checkout failed. Please try again.", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <div className={`fixed inset-0 z-50 ${isOpen ? '' : 'hidden'}`}>
-      <div className="fixed inset-0 bg-gray-500/40 " onClick={onClose}></div>
-      <div className={`fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
+      {/* Backdrop with blur effect */}
+      <div 
+        className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
+        onClick={onClose}
+      ></div>
+      
+      {/* Cart slideout panel */}
+      <div className={`fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Cart Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Shopping Cart</h2>
+          <div className="flex items-center justify-between p-5 bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
+            <div className="flex items-center space-x-2">
+              <ShoppingCart className="w-6 h-6 text-red-700" />
+              <h2 className="text-xl font-bold text-gray-900">Shopping Cart</h2>
+              {cart.length > 0 && (
+                <span className="bg-red-700 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cart.reduce((sum, item) => sum + item.qty, 0)}
+                </span>
+              )}
+            </div>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-2 rounded-full hover:bg-red-200 transition-colors duration-200"
+              aria-label="Close cart"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-red-700" />
             </button>
           </div>
 
+          {/* Action message notification */}
+          {actionMessage && (
+            <div className={`mx-4 mt-4 p-3 rounded-lg flex items-center space-x-2 ${
+              actionMessage.type === 'error' 
+                ? 'bg-red-100 text-red-700 border border-red-200' 
+                : 'bg-green-100 text-green-700 border border-green-200'
+            }`}>
+              <CheckCircle className="w-5 h-5" />
+              <span>{actionMessage.text}</span>
+            </div>
+          )}
+
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto py-4 px-5">
             {cart.length === 0 ? (
-              <div className="text-center py-12">
-                <ShoppingCart className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600">Your cart is empty</p>
-                <p className="text-sm text-gray-500 mt-1">Add some products to get started</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="bg-red-100 p-4 rounded-full mb-4">
+                  <ShoppingCart className="w-16 h-16 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Your cart is empty</h3>
+                <p className="text-gray-600 mb-6 max-w-xs">Add some products to get started with your shopping</p>
+                <button 
+                  onClick={onClose}
+                  className="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-300 shadow-md"
+                >
+                  Continue Shopping
+                </button>
               </div>
             ) : (
               <div className="space-y-4">
                 {cart.map(item => (
-                  <div key={item.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    {/* Only show the first image */}
-                    {item.images?.[0] && (
-                      <img
-                        src={item.images[0]}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                  <div 
+                    key={`${item.id}-${item.selectedSize || 'default'}`} 
+                    className="flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300"
+                  >
+                    <div className="relative">
+                      <img 
+                        src={item.image || (Array.isArray(item.images) ? item.images[0] : item.images)} 
+                        alt={item.name} 
+                        className="w-16 h-16 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.jpg";
+                        }}
                       />
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">{item.name}</h4>
-                      <p className="text-sm text-red-700 font-semibold">
-                        ${parseFloat(item.price).toFixed(2)}
-                      </p>
+                      {item.selectedSize && (
+                        <span className="absolute bottom-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                          {item.selectedSize}
+                        </span>
+                      )}
                     </div>
-
-                    <div className="flex items-center space-x-2">
+                    
+                    <div className="flex-1 min-w-0 ml-4">
+                      <h4 className="text-base font-semibold text-gray-900 truncate">
+                        {item.name}
+                      </h4>
+                             {/* Display selected size here */}
+                      {item.selectedSize && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Size: <span className="font-medium">{item.selectedSize}</span>
+                        </p>
+                      )}
+                      <div className="flex items-center mt-1">
+                        <span className="text-red-700 font-bold">
+                          ${parseFloat(item.price).toFixed(2)}
+                        </span>
+                        {item.originalPrice && item.originalPrice > item.price && (
+                          <span className="ml-2 text-sm text-gray-500 line-through">
+                            ${parseFloat(item.originalPrice).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-end space-y-2">
+                      <div className="flex items-center space-x-2 bg-gray-100 rounded-full p-1">
+                        <button 
+                          onClick={() => handleDecreaseQty(item.id)}
+                          className="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-700 shadow-sm transition-colors duration-200"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-sm font-medium w-8 text-center">
+                          {item.qty}
+                        </span>
+                        <button 
+                          onClick={() => handleIncreaseQty(item.id)}
+                          className="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-700 shadow-sm transition-colors duration-200"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      
                       <button 
-                        onClick={() => onDecreaseQty(item.id)}
-                        className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
+                        onClick={() => handleRemoveItem(item.id, item.name)}
+                        className="text-gray-400 hover:text-red-600 p-1 transition-colors duration-200"
+                        aria-label="Remove item"
                       >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="text-sm font-medium w-8 text-center">{item.qty}</span>
-                      <button 
-                        onClick={() => onIncreaseQty(item.id)}
-                        className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
-                      >
-                        <Plus className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-
-                    <button 
-                      onClick={() => onRemoveItem(item.id)}
-                      className="text-red-600 hover:text-red-800 p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 ))}
               </div>
@@ -85,22 +198,66 @@ export default function CartSlideout({
 
           {/* Cart Footer */}
           {cart.length > 0 && (
-            <div className="border-t border-gray-200 p-4 space-y-4">
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Total:</span>
-                <span className="text-red-700">${total.toFixed(2)}</span>
+            <div className="border-t border-gray-200 p-5 bg-gradient-to-b from-white to-gray-50">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="text-lg font-semibold text-gray-900">
+                  ${total.toFixed(2)}
+                </span>
               </div>
+              
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-gray-600">Shipping:</span>
+                <span className="text-gray-900">
+                  Free
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center mb-6 text-lg font-bold">
+                <span>Total:</span>
+                <span className="text-red-700 text-xl">
+                  ${total.toFixed(2)}
+                </span>
+              </div>
+              
               <button 
-                onClick={onCheckout}
-                className="w-full bg-red-700 text-white py-3 px-4 rounded-lg hover:bg-red-800 transition-colors font-medium"
+                onClick={handleCheckout}
+                disabled={isProcessing}
+                className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center ${
+                  isProcessing 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-red-700 hover:bg-red-800 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                } text-white`}
               >
-                Proceed to Checkout
+                {isProcessing ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Proceed to Checkout
+                  </>
+                )}
               </button>
+              
               <button 
-                onClick={onClearCart}
-                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                onClick={handleClearCart}
+                className="w-full mt-3 py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-300 text-sm font-medium flex items-center justify-center"
               >
+                <Trash2 className="w-4 h-4 mr-2" />
                 Clear Cart
+              </button>
+              
+              <button 
+                onClick={onClose}
+                className="w-full mt-2 py-2 text-red-600 hover:text-red-800 transition-colors duration-300 text-sm font-medium"
+              >
+                Continue Shopping
               </button>
             </div>
           )}
