@@ -134,7 +134,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   const [imageError, setImageError] = useState(false);
   
   const originalPrice = parseFloat(product.price);
-  const discountedPrice = parseFloat(product.newprice);
+  const discountedPrice = parseFloat(product.newPrice);
 
   // Get the primary image URL (first image in the array)
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
