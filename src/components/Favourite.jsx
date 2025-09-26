@@ -132,13 +132,13 @@ const FavoritesPage = ({ onAddToCart }) => {
             <p className="text-gray-600 text-lg mb-8">
               You haven't added any items to your favorites yet.
             </p>
-            <a
+            <Link
               href="/"
               className="inline-flex items-center px-6 py-3 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
             >
               <Heart className="w-5 h-5 mr-2" />
               Start Shopping
-            </a>
+            </Link>
           </div>
         </div>
       </div>
