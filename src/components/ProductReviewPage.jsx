@@ -4,6 +4,30 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { ShoppingCart, Heart, ArrowLeft } from "lucide-react";
 
+// Helper functions for localStorage
+const getFavoritesFromStorage = () => {
+  try {
+    const favorites = localStorage.getItem('favorites');
+    if (!favorites) return [];
+    
+    const parsedFavorites = JSON.parse(favorites);
+    return Array.isArray(parsedFavorites) ? parsedFavorites : [];
+  } catch (error) {
+    console.error('Error getting favorites from localStorage:', error);
+    return [];
+  }
+};
+
+const saveFavoritesToStorage = (favorites) => {
+  try {
+    // Ensure we're saving an array
+    const favoritesArray = Array.isArray(favorites) ? favorites : [];
+    localStorage.setItem('favorites', JSON.stringify(favoritesArray));
+  } catch (error) {
+    console.error('Error saving favorites to localStorage:', error);
+  }
+};
+
 const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -13,8 +37,16 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   const [selectedSize, setSelectedSize] = useState(null);
   const [message, setMessage] = useState("");
   const [imageError, setImageError] = useState(false);
+  const [favoriteProductIds, setFavoriteProductIds] = useState([]);
 
-  const isFavorited = favorites.some((p) => p.id === id);
+  // Initialize favorites from localStorage
+  useEffect(() => {
+    const savedFavorites = getFavoritesFromStorage();
+    setFavoriteProductIds(savedFavorites);
+  }, []);
+
+  // Check if product is favorited using localStorage state
+  const isFavorited = favoriteProductIds.includes(id);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -66,11 +98,26 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   };
 
   const handleFavorite = () => {
-    if (!isFavorited) {
+    const currentFavorites = [...favoriteProductIds];
+    const productId = product.id;
+
+    if (isFavorited) {
+      // Remove from favorites
+      const updatedFavorites = currentFavorites.filter(id => id !== productId);
+      saveFavoritesToStorage(updatedFavorites);
+      setFavoriteProductIds(updatedFavorites);
+      setMessage("💔 Removed from favorites!");
+    } else {
+      // Add to favorites
+      const updatedFavorites = [...currentFavorites, productId];
+      saveFavoritesToStorage(updatedFavorites);
+      setFavoriteProductIds(updatedFavorites);
+      // Also call the prop function to maintain existing behavior
       onAddToFavorites(product);
       setMessage("❤️ Added to favorites!");
-      setTimeout(() => setMessage(""), 3000);
     }
+
+    setTimeout(() => setMessage(""), 3000);
   };
 
   const handleImageError = () => {
@@ -252,12 +299,12 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
               </div>
 
               {/* Description */}
-              <div className="mt-auto pt-6 border-t border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {product.det || "No description available for this product."}
-                </p>
-              </div>
+      <div className="mt-auto pt-6 border-t border-gray-200">
+  <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
+  <p className="text-gray-700 leading-relaxed whitespace-pre-line break-words">
+    {product.det || "No description available for this product."}
+  </p>
+</div>
             </div>
           </div>
         </div>
