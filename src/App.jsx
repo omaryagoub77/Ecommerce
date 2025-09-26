@@ -10,6 +10,8 @@ import Header from "./components/Header";
 import CartSlideout from "./components/CartSlideout";
 import CheckoutModal from "./components/CheckoutModal";
         import ProductReviewPage from "./components/ProductReviewPage";
+        import Footer from "./components/Footer";
+        import ContactPage  from "./components/ContactPage";
 import "./App.css";
 
 function App() {
@@ -179,8 +181,10 @@ function App() {
     />
   }
 />
-
+        <Route path="/contact" element={<ContactPage />} />
       </Routes>
+      <Footer />
+
     </HashRouter>
   );
 }

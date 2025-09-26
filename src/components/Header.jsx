@@ -10,7 +10,7 @@ export default function Header({ cartItemCount, onCartClick }) {
   const location = useLocation();
 
   // Fix typo: "Wemen" should be "Women"
-  const links = ["Home", "Men", "Women", "Kids","Favorites"];
+  const links = ["Home", "Men", "Women", "Kids","Favorites" ,"contact"];
 
   // Close mobile menu when route changes
   useEffect(() => {
