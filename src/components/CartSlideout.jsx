@@ -109,6 +109,8 @@ export default function CartSlideout({
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Your cart is empty</h3>
                 <p className="text-gray-600 mb-6 max-w-xs">Add some products to get started with your shopping</p>
+                
+                
                 <button 
                   onClick={onClose}
                   className="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-300 shadow-md"
