@@ -238,12 +238,13 @@ const FavoritesPage = ({ onAddToCart }) => {
 
         {/* Continue Shopping */}
         <div className="mt-12 text-center">
-          <a
-            href="/"
+          <NavLink
+            to={"/Ecommerce"}
+            
             className="inline-flex mb-8 items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
           >
             Continue Shopping
-          </a>
+          </NavLink>
         </div>
       </div>
     </div>
