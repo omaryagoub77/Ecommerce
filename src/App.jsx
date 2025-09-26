@@ -67,7 +67,7 @@ function App() {
   const getTotalPrice = () => cart.reduce((sum, item) => sum + parseFloat(item.price) * item.qty, 0);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Header
         cartItemCount={getTotalItems()}
         onCartClick={() => setIsCartOpen(true)}
@@ -181,7 +181,7 @@ function App() {
 />
 
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

@@ -1,19 +1,126 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Heart, Trash2, HeartOff } from "lucide-react";
+import { collection, getDocs, query, where, documentId } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
-const FavoritesPage = ({ favorites = [], onRemoveFromFavorites, onAddToCart }) => {
-  const handleRemoveFavorite = (productId) => {
-    if (onRemoveFromFavorites) {
-      onRemoveFromFavorites(productId);
+const FavoritesPage = ({ onAddToCart }) => {
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Helper functions for localStorage
+  const getFavoritesFromStorage = () => {
+    try {
+      const favorites = localStorage.getItem('favorites');
+      if (!favorites) return [];
+      
+      const parsedFavorites = JSON.parse(favorites);
+      return Array.isArray(parsedFavorites) ? parsedFavorites : [];
+    } catch (error) {
+      console.error('Error getting favorites from localStorage:', error);
+      return [];
     }
   };
 
-  const handleAddToCart = (product) => {
+  // Fetch favorite products from Firebase based on IDs in localStorage
+  const fetchFavoriteProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get favorite product IDs from localStorage
+      const favoriteIds = getFavoritesFromStorage();
+      
+      if (favoriteIds.length === 0) {
+        setFavorites([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch products from Firebase
+      const q = query(collection(db, "products"), where(documentId(), "in", favoriteIds));
+      const querySnapshot = await getDocs(q);
+      
+      const favoriteProducts = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      setFavorites(favoriteProducts);
+    } catch (err) {
+      console.error("Error fetching favorite products:", err);
+      setError("Failed to load your favorites. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Remove product from favorites
+  const handleRemoveFavorite = useCallback((productId) => {
+    try {
+      // Get current favorites from localStorage
+      const currentFavorites = getFavoritesFromStorage();
+      
+      // Remove the product ID from favorites
+      const updatedFavorites = currentFavorites.filter(id => id !== productId);
+      
+      // Save back to localStorage
+      localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+      
+      // Update local state by removing the product
+      setFavorites(prev => prev.filter(product => product.id !== productId));
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+    }
+  }, []);
+
+  // Add product to cart
+  const handleAddToCart = useCallback((product) => {
     if (onAddToCart) {
       onAddToCart(product);
     }
-  };
+  }, [onAddToCart]);
 
+  // Fetch favorites on component mount
+  useEffect(() => {
+    fetchFavoriteProducts();
+  }, [fetchFavoriteProducts]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-700"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-16">
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Oops!</h1>
+            <p className="text-gray-600 text-lg mb-8">{error}</p>
+            <button
+              onClick={fetchFavoriteProducts}
+              className="inline-flex items-center px-6 py-3 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
   if (favorites.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 pt-16">
@@ -58,7 +165,7 @@ const FavoritesPage = ({ favorites = [], onRemoveFromFavorites, onAddToCart }) =
               {/* Image */}
               <div className="relative overflow-hidden">
                 <img
-                  src={product.images[0] || "https://via.placeholder.com/300x300?text=No+Image"}
+                  src={product.images && product.images.length > 0 ? product.images[0] : "https://via.placeholder.com/300x300?text=No+Image"}
                   alt={product.name}
                   className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                 />

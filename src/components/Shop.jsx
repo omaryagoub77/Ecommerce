@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy } from "react";
+import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef } from "react";
 import { Link } from "react-router-dom";
 import { collection, getDocs, query, limit, startAfter, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
@@ -71,7 +71,7 @@ const initialState = {
   products: [],
   loading: false,
   searchQuery: "",
-  favoriteState: {},
+  favoriteState: [], // Initialize as empty array
   lastVisible: null,
   hasMore: true,
   page: 1,
@@ -87,7 +87,8 @@ function reducer(state, action) {
     case 'SET_SEARCH_QUERY':
       return { ...state, searchQuery: action.payload };
     case 'SET_FAVORITE_STATE':
-      return { ...state, favoriteState: action.payload };
+      // Ensure favoriteState is always an array
+      return { ...state, favoriteState: Array.isArray(action.payload) ? action.payload : [] };
     case 'SET_LAST_VISIBLE':
       return { ...state, lastVisible: action.payload };
     case 'SET_HAS_MORE':
@@ -103,6 +104,30 @@ function reducer(state, action) {
   }
 }
 
+// Helper functions for localStorage
+const getFavoritesFromStorage = () => {
+  try {
+    const favorites = localStorage.getItem('favorites');
+    if (!favorites) return [];
+    
+    const parsedFavorites = JSON.parse(favorites);
+    return Array.isArray(parsedFavorites) ? parsedFavorites : [];
+  } catch (error) {
+    console.error('Error getting favorites from localStorage:', error);
+    return [];
+  }
+};
+
+const saveFavoritesToStorage = (favorites) => {
+  try {
+    // Ensure we're saving an array
+    const favoritesArray = Array.isArray(favorites) ? favorites : [];
+    localStorage.setItem('favorites', JSON.stringify(favoritesArray));
+  } catch (error) {
+    console.error('Error saving favorites to localStorage:', error);
+  }
+};
+
 // Memoized Product Card Component
 const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -110,26 +135,34 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   
   const originalPrice = parseFloat(product.price);
   const discountedPrice = parseFloat(product.newprice);
-// In ProductCard, add this before the return statement
+
+  // Get the primary image URL (first image in the array)
+  const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
-{product.images?.map((img, idx) => (
-  <LazyLoadImage
-    key={idx}
-    src={img}
-    alt={`${product.name} - Image ${idx + 1}`}
-    effect=""
-    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-    onLoad={() => setImageLoaded(true)}
-    onError={() => setImageError(true)}
-    placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
-  />
-))}
+        {primaryImage ? (
+          <LazyLoadImage
+            src={primaryImage}
+            alt={product.name}
+            effect=""
+            className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-500 text-xs">No Image</span>
+            </div>
+          </div>
+        )}
+        
         {/* Image Loading Placeholder */}
-        {!imageLoaded && !imageError && (
+        {!imageLoaded && !imageError && primaryImage && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
             <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
           </div>
@@ -263,13 +296,12 @@ const SkeletonLoader = () => (
   </div>
 );
 
-
 // Search Bar Component
 const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) => {
   // Debounced search handler
   const handleSearchChange = useCallback(
     debounce((value) => setSearchQuery(value), 300),
-    []
+    [setSearchQuery]
   );
 
   return (
@@ -383,6 +415,20 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   
   const pageSize = 12;
 
+  // Create a ref to hold the latest favoriteState
+  const favoriteStateRef = useRef(favoriteState);
+  
+  // Update the ref whenever favoriteState changes
+  useEffect(() => {
+    favoriteStateRef.current = favoriteState;
+  }, [favoriteState]);
+
+  // Load favorites from localStorage on component mount
+  useEffect(() => {
+    const savedFavorites = getFavoritesFromStorage();
+    dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
+  }, []);
+
   // Optimized fetch function with server-side filtering
   const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
     if (pageNum === 1) {
@@ -449,21 +495,45 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     }
   }, [loading, hasMore, page, fetchProducts]);
 
-  // Toggle favorite for specific product
+  // Create a stable favorite toggle function
   const handleFavoriteClick = useCallback((productId) => {
-    dispatch({
-      type: 'SET_FAVORITE_STATE',
-      payload: {
-        ...favoriteState,
-        [productId]: !favoriteState[productId]
-      }
-    });
+    // Get the latest favoriteState from the ref
+    const currentFavorites = Array.isArray(favoriteStateRef.current) 
+      ? [...favoriteStateRef.current] 
+      : (typeof favoriteStateRef.current === 'object' && favoriteStateRef.current !== null) 
+        ? Object.values(favoriteStateRef.current) 
+        : [];
+    
+    // Check if product is already in favorites
+    const isFavorite = currentFavorites.includes(productId);
+    
+    let updatedFavorites;
+    if (isFavorite) {
+      // Remove from favorites
+      updatedFavorites = currentFavorites.filter(id => id !== productId);
+    } else {
+      // Add to favorites
+      updatedFavorites = [...currentFavorites, productId];
+    }
+    
+    // Save to localStorage
+    saveFavoritesToStorage(updatedFavorites);
+    
+    // Update state
+    dispatch({ type: 'SET_FAVORITE_STATE', payload: updatedFavorites });
 
     if (onAddToFavorites) {
       const product = products.find((p) => p.id === productId);
       if (product) onAddToFavorites(product);
     }
-  }, [favoriteState, onAddToFavorites, products]);
+  }, [onAddToFavorites, products]); // Removed favoriteState from dependencies
+
+  // Ensure favoriteState is always an array before using it
+  const safeFavoriteState = Array.isArray(favoriteState) 
+    ? favoriteState 
+    : (typeof favoriteState === 'object' && favoriteState !== null) 
+      ? Object.values(favoriteState) 
+      : [];
 
   // Group products
   const men = products.filter((p) => p.category === "men");
@@ -480,12 +550,11 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-      <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-50">
-  {Array.from({ length: 4 }).map((_, i) => (
-    <SkeletonLoader key={i} />
-  ))}
-</div>
-
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonLoader key={i} />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -573,7 +642,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                   product={product}
                   onAddToCart={onAddToCart}
                   onAddToFavorites={handleFavoriteClick}
-                  isFav={favoriteState[product.id] || false}
+                  isFav={safeFavoriteState.includes(product.id)}
                 />
               ))}
             </div>
@@ -595,7 +664,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                   product={product}
                   onAddToCart={onAddToCart}
                   onAddToFavorites={handleFavoriteClick}
-                  isFav={favoriteState[product.id] || false}
+                  isFav={safeFavoriteState.includes(product.id)}
                 />
               ))}
             </div>
@@ -617,7 +686,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                   product={product}
                   onAddToCart={onAddToCart}
                   onAddToFavorites={handleFavoriteClick}
-                  isFav={favoriteState[product.id] || false}
+                  isFav={safeFavoriteState.includes(product.id)}
                 />
               ))}
             </div>
