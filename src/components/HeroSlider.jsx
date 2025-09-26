@@ -1,10 +1,37 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, memo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { WifiOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGesture } from "@use-gesture/react";
-
 import "./HeroSlider.css";
+
+// Memoized slide component to prevent unnecessary re-renders
+const Slide = memo(({ slide, isActive, isEager, scrollToMenSection }) => {
+  return (
+    <div className="slide" aria-hidden={!isActive}>
+      <img
+        src={slide.image}
+        alt={slide.title || "Slide"}
+        className="slide-image"
+        loading={isEager ? "eager" : "lazy"}
+        fetchpriority={isEager ? "high" : "auto"}
+      />
+      <div className="slide-overlay">
+        <div className="slide-content">
+          <h2 className="slide-title">{slide.title}</h2>
+          {slide.description && (
+            <p className="slide-description">{slide.description}</p>
+          )}
+          {slide.buttonText && (
+            <button className="slide-subtitle hero-btn" onClick={scrollToMenSection}>
+              {slide.buttonText}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const HeroSlider = () => {
   const [slides, setSlides] = useState([]);
@@ -15,18 +42,31 @@ const HeroSlider = () => {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const intervalRef = useRef(null);
   const preloadedImages = useRef(new Set());
+  const sliderRef = useRef(null);
 
-  // Fetch slides from Firebase
+  // Fetch slides from Firebase with caching simulation
   useEffect(() => {
     const fetchSlides = async () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Check if we have cached data (simulated)
+        const cachedSlides = sessionStorage.getItem('heroSlides');
+        if (cachedSlides) {
+          setSlides(JSON.parse(cachedSlides));
+          setLoading(false);
+          return;
+        }
+        
         const querySnapshot = await getDocs(collection(db, "heroes"));
         const slideData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        
+        // Cache the slides
+        sessionStorage.setItem('heroSlides', JSON.stringify(slideData));
         setSlides(slideData);
       } catch (err) {
         console.error("Error fetching slides:", err);
@@ -35,32 +75,32 @@ const HeroSlider = () => {
         setLoading(false);
       }
     };
+    
     fetchSlides();
   }, []);
 
   // Detect touch devices
   useEffect(() => {
     const checkTouch = () => {
-      const touchCapable =
+      setIsTouchDevice(
         "ontouchstart" in window ||
         navigator.maxTouchPoints > 0 ||
-        window.matchMedia("(pointer: coarse)").matches;
-
-      setIsTouchDevice(touchCapable);
+        window.matchMedia("(pointer: coarse)").matches
+      );
     };
-
+    
     checkTouch();
     window.addEventListener("resize", checkTouch);
     return () => window.removeEventListener("resize", checkTouch);
   }, []);
 
-  // Auto slide logic
+  // Optimized auto slide logic
   const startAutoSlide = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      safeIncrementIndex();
+      setCurrentIndex(prev => (prev >= slides.length + 1 ? 1 : prev + 1));
     }, 5000);
-  }, []);
+  }, [slides.length]);
 
   const stopAutoSlide = useCallback(() => {
     if (intervalRef.current) {
@@ -73,6 +113,15 @@ const HeroSlider = () => {
     stopAutoSlide();
     startAutoSlide();
   }, [startAutoSlide, stopAutoSlide]);
+
+  // Pause on hover
+  const handleMouseEnter = useCallback(() => {
+    stopAutoSlide();
+  }, [stopAutoSlide]);
+
+  const handleMouseLeave = useCallback(() => {
+    startAutoSlide();
+  }, [startAutoSlide]);
 
   useEffect(() => {
     if (slides.length > 0) {
@@ -90,20 +139,21 @@ const HeroSlider = () => {
         startAutoSlide();
       }
     };
+    
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [slides.length, startAutoSlide, stopAutoSlide]);
 
   // Navigation handlers
   const safeIncrementIndex = useCallback(() => {
-    setCurrentIndex((prev) => (prev >= slides.length + 1 ? 1 : prev + 1));
+    setCurrentIndex(prev => (prev >= slides.length + 1 ? 1 : prev + 1));
   }, [slides.length]);
 
   const safeDecrementIndex = useCallback(() => {
-    setCurrentIndex((prev) => (prev <= 0 ? slides.length : prev - 1));
+    setCurrentIndex(prev => (prev <= 0 ? slides.length : prev - 1));
   }, [slides.length]);
 
-  const handleTransitionEnd = () => {
+  const handleTransitionEnd = useCallback(() => {
     if (currentIndex === slides.length + 1) {
       requestAnimationFrame(() => {
         setTransitionEnabled(false);
@@ -115,7 +165,7 @@ const HeroSlider = () => {
         setCurrentIndex(slides.length);
       });
     }
-  };
+  }, [currentIndex, slides.length]);
 
   useEffect(() => {
     if (!transitionEnabled) {
@@ -125,30 +175,34 @@ const HeroSlider = () => {
   }, [transitionEnabled]);
 
   // Indicator click
-  const handleIndicatorClick = (index) => {
+  const handleIndicatorClick = useCallback((index) => {
     setCurrentIndex(index + 1);
     resetAutoSlide();
-  };
+  }, [resetAutoSlide]);
 
   // Scroll to section
-  const scrollToMenSection = () => {
+  const scrollToMenSection = useCallback(() => {
     const section = document.getElementById("men-section");
     if (section) section.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
-  // Preload next image safely
+  // Optimized image preloading
   useEffect(() => {
-    if (slides.length > 0) {
-      const nextImage = slides[currentIndex % slides.length]?.image;
-      if (nextImage && !preloadedImages.current.has(nextImage)) {
-        const link = document.createElement("link");
-        link.rel = "preload";
-        link.as = "image";
-        link.href = nextImage;
-        document.head.appendChild(link);
-        preloadedImages.current.add(nextImage);
+    if (slides.length === 0) return;
+    
+    // Preload current, next, and previous images
+    const preloadImages = [currentIndex - 1, currentIndex, currentIndex + 1].map(index => {
+      const slideIndex = ((index % slides.length) + slides.length) % slides.length;
+      return slides[slideIndex]?.image;
+    }).filter(Boolean);
+    
+    preloadImages.forEach(imageUrl => {
+      if (imageUrl && !preloadedImages.current.has(imageUrl)) {
+        const img = new Image();
+        img.src = imageUrl;
+        preloadedImages.current.add(imageUrl);
       }
-    }
+    });
   }, [currentIndex, slides]);
 
   // Swipe gesture binding (only for touch devices)
@@ -165,6 +219,7 @@ const HeroSlider = () => {
       },
     },
     {
+      enabled: isTouchDevice, // Only enable gestures on touch devices
       drag: {
         threshold: 30,
         axis: "x",
@@ -177,7 +232,9 @@ const HeroSlider = () => {
   );
 
   // Extended slides for infinite loop
-  const extendedSlides = [slides[slides.length - 1], ...slides, slides[0]];
+  const extendedSlides = slides.length > 0 
+    ? [slides[slides.length - 1], ...slides, slides[0]]
+    : [];
 
   // Loading state
   if (loading) {
@@ -220,50 +277,38 @@ const HeroSlider = () => {
 
   return (
     <div
-      {...(isTouchDevice ? bind() : {})}
+      {...bind()}
       className="hero-slider"
       role="region"
       aria-label="Hero Image Slider"
       aria-live="polite"
+      ref={sliderRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div
         className={`slides-container ${!transitionEnabled ? "no-transition" : ""}`}
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         onTransitionEnd={handleTransitionEnd}
       >
-        {extendedSlides.map((slide, index) => (
-          <div
-            className="slide"
-            key={`${slide?.id || "placeholder"}-${index}`}
-            aria-hidden={index !== currentIndex}
-          >
-            <img
-              src={slide?.image}
-              alt={slide?.title || "Slide"}
-              className="slide-image"
-              loading={index <= 2 ? "eager" : "lazy"}
+        {extendedSlides.map((slide, index) => {
+          // Determine if this slide should be eager loaded
+          const isEager = index <= 2 || index === extendedSlides.length - 1;
+          const isActive = index === currentIndex;
+          
+          return (
+            <Slide
+              key={`${slide.id}-${index}`}
+              slide={slide}
+              isActive={isActive}
+              isEager={isEager}
+              scrollToMenSection={scrollToMenSection}
             />
-            <div className="slide-overlay">
-              <div className="slide-content">
-                <h2 className="slide-title">{slide?.title}</h2>
-                {slide?.description && (
-                  <p className="slide-description">{slide.description}</p>
-                )}
-                {slide?.buttonText && (
-                  <button
-                    className="slide-subtitle hero-btn"
-                    onClick={scrollToMenSection}
-                  >
-                    {slide.buttonText}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Navigation (hidden on mobile if desired via CSS) */}
+      {/* Navigation buttons */}
       <button
         className="nav-btn nav-btn--left"
         onClick={() => {
@@ -304,4 +349,4 @@ const HeroSlider = () => {
   );
 };
 
-export default HeroSlider;
+export default memo(HeroSlider);
