@@ -1,10 +1,22 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
-import { collection, getDocs, query, limit, startAfter } from "firebase/firestore";
+import { collection, getDocs, query, limit, startAfter, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { ShoppingCart, WifiOff, Heart, Search, Expand, X, Filter, Grid, List } from "lucide-react";
-import HeroSlider from "./HeroSlider";
-import "./shop.css";
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
+
+// Dynamic imports for code splitting
+const HeroSlider = lazy(() => import('./HeroSlider'));
+const ShoppingCart = lazy(() => import('lucide-react').then(mod => ({ default: mod.ShoppingCart })));
+const WifiOff = lazy(() => import('lucide-react').then(mod => ({ default: mod.WifiOff })));
+const Heart = lazy(() => import('lucide-react').then(mod => ({ default: mod.Heart })));
+const Search = lazy(() => import('lucide-react').then(mod => ({ default: mod.Search })));
+const Expand = lazy(() => import('lucide-react').then(mod => ({ default: mod.Expand })));
+const X = lazy(() => import('lucide-react').then(mod => ({ default: mod.X })));
+const Grid = lazy(() => import('lucide-react').then(mod => ({ default: mod.Grid })));
+const List = lazy(() => import('lucide-react').then(mod => ({ default: mod.List })));
+
+// Image imports
 import womenImage from "../public/women.jpg";
 import manImage from "../public/man.jpg";
 import kidImage from "../public/kid.jpg";
@@ -41,29 +53,92 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Product Card Component - Smaller card with bigger fonts and icons
-const ProductCard = ({ product, onAddToCart, onAddToFavorites, isFav }) => {
+// Debounce utility function (moved outside component to avoid recreation)
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+// State reducer for better performance
+const initialState = {
+  products: [],
+  loading: false,
+  searchQuery: "",
+  favoriteState: {},
+  lastVisible: null,
+  hasMore: true,
+  page: 1,
+  viewMode: "grid"
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_PRODUCTS':
+      return { ...state, products: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.payload };
+    case 'SET_FAVORITE_STATE':
+      return { ...state, favoriteState: action.payload };
+    case 'SET_LAST_VISIBLE':
+      return { ...state, lastVisible: action.payload };
+    case 'SET_HAS_MORE':
+      return { ...state, hasMore: action.payload };
+    case 'SET_PAGE':
+      return { ...state, page: action.payload };
+    case 'SET_VIEW_MODE':
+      return { ...state, viewMode: action.payload };
+    case 'RESET_PAGINATION':
+      return { ...state, page: 1, lastVisible: null, hasMore: true, products: [] };
+    default:
+      return state;
+  }
+}
+
+// Memoized Product Card Component
+const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
   const originalPrice = parseFloat(product.price);
   const discountedPrice = parseFloat(product.newprice);
-
+// In ProductCard, add this before the return statement
+useEffect(() => {
+  if (product.images && product.images.length > 0) {
+    console.log("Product image URL:", product.images[0]);
+    // Test if the URL is valid
+    const img = new Image();
+    img.onload = () => console.log("Image loaded successfully");
+    img.onerror = (e) => console.error("Image failed to load:", e);
+    img.src = product.images[0];
+  } else {
+    console.log("No images available for product:", product.name);
+  }
+}, [product.images, product.name]);
   return (
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
-      {/* Image Container - Fixed aspect ratio but smaller height */}
-      <div className="relative overflow-hidden bg-gray-100 aspect-[1/2]">
-        {product.images?.map((img, idx) => (
-          <img
-            key={idx}
-            src={img}
-            alt={`${product.name} - Image ${idx + 1}`}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-          />
-        ))}
-        
+      {/* Image Container */}
+      <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
+{product.images?.map((img, idx) => (
+  <LazyLoadImage
+    key={idx}
+    src={img}
+    alt={`${product.name} - Image ${idx + 1}`}
+    effect=""
+    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+    onLoad={() => setImageLoaded(true)}
+    onError={() => setImageError(true)}
+    placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+  />
+))}
         {/* Image Loading Placeholder */}
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
@@ -79,11 +154,10 @@ const ProductCard = ({ product, onAddToCart, onAddToFavorites, isFav }) => {
           </div>
         )}
         
-        {/* Action Buttons - Bigger icons */}
+        {/* Action Buttons */}
         <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-          {/* Favorite Button */}
           <button
-            onClick={() => onAddToFavorites(product)}
+            onClick={() => onAddToFavorites(product.id)}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
             className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
               isFav
@@ -98,7 +172,6 @@ const ProductCard = ({ product, onAddToCart, onAddToFavorites, isFav }) => {
             />
           </button>
           
-          {/* Expand Button */}
           <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
             <button
               className="p-2 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -116,7 +189,7 @@ const ProductCard = ({ product, onAddToCart, onAddToFavorites, isFav }) => {
         )}
       </div>
 
-      {/* Product Info - More compact */}
+      {/* Product Info */}
       <div className="p-2 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1">
           <h3 className="font-bold text-base text-gray-900 line-clamp-1">
@@ -154,29 +227,46 @@ const ProductCard = ({ product, onAddToCart, onAddToFavorites, isFav }) => {
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.isFav === nextProps.isFav
+  );
+});
 
-// Skeleton Loader Component - Matching the smaller card
+// Skeleton Loader Component
 const SkeletonLoader = () => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
-    <div className="relative bg-gray-200 aspect-[3/4]">
-      <div className="absolute top-2 left-2 bg-gray-300 rounded-full w-12 h-5"></div>
+    {/* Image Placeholder (square aspect ratio) */}
+    <div className="relative bg-gray-200 aspect-[1/1]">
+      {/* Discount badge placeholder */}
+      <div className="absolute top-2 left-2 bg-gray-300 rounded-full w-14 h-5"></div>
+
+      {/* Action buttons placeholder */}
       <div className="absolute top-2 right-2 flex flex-col space-y-2">
         <div className="w-9 h-9 bg-gray-300 rounded-full"></div>
         <div className="w-9 h-9 bg-gray-300 rounded-full"></div>
       </div>
     </div>
+
+    {/* Text / Info Section */}
     <div className="p-2 flex flex-col flex-grow">
-      <div className="flex justify-between mb-1">
-        <div className="h-5 bg-gray-300 rounded w-3/4"></div>
-        <div className="h-5 bg-gray-300 rounded w-14"></div>
+      {/* Title & Category badge */}
+      <div className="flex justify-between items-center mb-2">
+        <div className="h-5 bg-gray-300 rounded w-2/3"></div>
+        <div className="h-5 bg-gray-300 rounded-full w-16"></div>
       </div>
+
+      {/* Product description lines */}
       <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
-      <div className="h-3 bg-gray-300 rounded w-5/6 mb-2 flex-grow"></div>
-      <div className="flex justify-between">
-        <div className="flex space-x-1">
+      <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
+
+      {/* Price & cart button */}
+      <div className="flex items-center justify-between mt-auto">
+        <div className="space-x-2 flex items-center">
           <div className="h-4 bg-gray-300 rounded w-10"></div>
-          <div className="h-5 bg-gray-300 rounded w-12"></div>
+          <div className="h-6 bg-gray-300 rounded w-16"></div>
         </div>
         <div className="h-9 w-9 bg-gray-300 rounded-lg"></div>
       </div>
@@ -184,17 +274,14 @@ const SkeletonLoader = () => (
   </div>
 );
 
+
 // Search Bar Component
-const SearchBar = ({ searchQuery, setSearchQuery, filteredCount }) => {
-  // Debounce search input
-  const debouncedSearch = useCallback(
+const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) => {
+  // Debounced search handler
+  const handleSearchChange = useCallback(
     debounce((value) => setSearchQuery(value), 300),
     []
   );
-
-  const handleSearchChange = (e) => {
-    debouncedSearch(e.target.value);
-  };
 
   return (
     <div className="w-full mb-10 mx-auto px-4">
@@ -206,8 +293,8 @@ const SearchBar = ({ searchQuery, setSearchQuery, filteredCount }) => {
           <input
             type="text"
             placeholder="Search products..."
-            value={searchQuery}
-            onChange={handleSearchChange}
+            defaultValue={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-9 py-3 border border-gray-300 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-300 text-sm"
             aria-label="Search products"
           />
@@ -235,10 +322,10 @@ const SearchBar = ({ searchQuery, setSearchQuery, filteredCount }) => {
       </div>
     </div>
   );
-};
+});
 
 // Category Navigation Component
-const CategoryNav = () => {
+const CategoryNav = React.memo(() => {
   const categories = [
     { name: "men", img: manImage },
     { name: "women", img: womenImage },
@@ -263,9 +350,10 @@ const CategoryNav = () => {
               className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1 border-4 border-white shadow-lg"
               aria-label={`View ${cat.name} products`}
             >
-              <img
+              <LazyLoadImage
                 src={cat.img}
                 alt={`${cat.name} category`}
+                effect="blur"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -278,53 +366,53 @@ const CategoryNav = () => {
       </div>
     </div>
   );
-};
-
-// Debounce utility function
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
+});
 
 // Section Header Component
-const SectionHeader = ({ title, count }) => (
+const SectionHeader = React.memo(({ title, count }) => (
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
     <span className="bg-red-100 text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
       {count} {count === 1 ? "item" : "items"}
     </span>
   </div>
-);
+));
 
 // Main Component
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [favoriteState, setFavoriteState] = useState({});
-  const [lastVisible, setLastVisible] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const {
+    products,
+    loading,
+    searchQuery,
+    favoriteState,
+    lastVisible,
+    hasMore,
+    page,
+    viewMode
+  } = state;
+  
   const pageSize = 12;
 
-  // Fetch products with pagination
-  const fetchProducts = async (pageNum = 1) => {
+  // Optimized fetch function with server-side filtering
+  const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
     if (pageNum === 1) {
-      setLoading(true);
-      setProducts([]);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'RESET_PAGINATION' });
     }
     
     try {
       let q = collection(db, "products");
       
+      // Add search filter if provided
+      if (search.trim() !== "") {
+        q = query(q, 
+          where("name", ">=", search),
+          where("name", "<=", search + "\uf8ff")
+        );
+      }
+      
+      // Add pagination
       if (pageNum > 1 && lastVisible) {
         q = query(q, startAfter(lastVisible), limit(pageSize));
       } else {
@@ -337,50 +425,61 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         ...doc.data(),
       }));
       
-      setProducts(prev => pageNum === 1 ? productList : [...prev, ...productList]);
-      setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
-      setHasMore(querySnapshot.docs.length === pageSize);
+      if (pageNum === 1) {
+        dispatch({ type: 'SET_PRODUCTS', payload: productList });
+      } else {
+        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...productList] });
+      }
+      
+      dispatch({ type: 'SET_LAST_VISIBLE', payload: querySnapshot.docs[querySnapshot.docs.length - 1] });
+      dispatch({ type: 'SET_HAS_MORE', payload: querySnapshot.docs.length === pageSize });
+      dispatch({ type: 'SET_PAGE', payload: pageNum });
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, [searchQuery, lastVisible, products, pageSize]);
 
   // Initial fetch
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // Handle search query changes
+  useEffect(() => {
+    if (searchQuery !== state.searchQuery) {
+      fetchProducts(1, searchQuery);
+    }
+  }, [searchQuery]);
+
   // Load more products
-  const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchProducts(nextPage);
-  };
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      fetchProducts(page + 1);
+    }
+  }, [loading, hasMore, page, fetchProducts]);
 
   // Toggle favorite for specific product
-  const handleFavoriteClick = (productId) => {
-    setFavoriteState((prev) => ({
-      ...prev,
-      [productId]: !prev[productId],
-    }));
+  const handleFavoriteClick = useCallback((productId) => {
+    dispatch({
+      type: 'SET_FAVORITE_STATE',
+      payload: {
+        ...favoriteState,
+        [productId]: !favoriteState[productId]
+      }
+    });
 
     if (onAddToFavorites) {
       const product = products.find((p) => p.id === productId);
       if (product) onAddToFavorites(product);
     }
-  };
-
-  // Filter products by search query
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  }, [favoriteState, onAddToFavorites, products]);
 
   // Group products
-  const men = filteredProducts.filter((p) => p.category === "men");
-  const women = filteredProducts.filter((p) => p.category === "women");
-  const kids = filteredProducts.filter((p) => p.category === "kids");
+  const men = products.filter((p) => p.category === "men");
+  const women = products.filter((p) => p.category === "women");
+  const kids = products.filter((p) => p.category === "kids");
 
   // Loading state
   if (loading && products.length === 0) {
@@ -392,11 +491,12 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <SkeletonLoader key={index} />
-            ))}
-          </div>
+      <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-50">
+  {Array.from({ length: 4 }).map((_, i) => (
+    <SkeletonLoader key={i} />
+  ))}
+</div>
+
         </div>
       </div>
     );
@@ -427,7 +527,9 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Hero Section */}
-        <HeroSlider />
+        <Suspense fallback={<div className="h-64 bg-gray-200 animate-pulse" />}>
+          <HeroSlider />
+        </Suspense>
 
         {/* Categories */}
         <CategoryNav />
@@ -435,16 +537,16 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {/* Search Bar */}
         <SearchBar 
           searchQuery={searchQuery} 
-          setSearchQuery={setSearchQuery}
-          filteredCount={filteredProducts.length}
+          setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
+          filteredCount={products.length}
         />
 
-        {/* View Mode Toggle - Hidden on very small screens */}
+        {/* View Mode Toggle */}
         <div className="max-w-7xl mx-auto px-4 mb-4 hidden sm:flex justify-end">
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <button
               type="button"
-              onClick={() => setViewMode("grid")}
+              onClick={() => dispatch({ type: 'SET_VIEW_MODE', payload: 'grid' })}
               className={`px-3 py-2 text-sm font-medium rounded-l-lg ${
                 viewMode === "grid"
                   ? "bg-red-600 text-white"
@@ -455,7 +557,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("list")}
+              onClick={() => dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })}
               className={`px-3 py-2 text-sm font-medium rounded-r-md ${
                 viewMode === "list"
                   ? "bg-red-600 text-white"
@@ -560,4 +662,4 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   );
 };
 
-export default EnhancedProducts;
+export default React.memo(EnhancedProducts);

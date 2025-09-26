@@ -249,12 +249,12 @@ const HeroSlider = () => {
                 {slide?.description && (
                   <p className="slide-description">{slide.description}</p>
                 )}
-                {slide?.subtitle && (
+                {slide?.buttonText && (
                   <button
                     className="slide-subtitle hero-btn"
                     onClick={scrollToMenSection}
                   >
-                    {slide.subtitle}
+                    {slide.buttonText}
                   </button>
                 )}
               </div>

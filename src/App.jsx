@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route, HashRouter , BrowserRouter } from "react-router-dom";
 
 import ShopPage from "./components/Shop";
 import Men from "./components/Men";
@@ -135,7 +135,7 @@ function App() {
           }
         />
         <Route
-          path="/wemen"
+          path="/women"
           element={
             <Wemen
               onAddToCart={addToCart}
