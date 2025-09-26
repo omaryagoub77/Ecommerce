@@ -310,9 +310,9 @@ const Women = ({ onAddToCart, searchQuery }) => {
                   <h3 className="font-semibold text-sm sm:text-lg text-gray-900 mb-1 truncate">
                     {product.name}
                   </h3>
-                  <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">
+                  {/* <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">
                     {product.det || "No description available"}
-                  </p>
+                  </p> */}
 
                   {/* Category Badge */}
                   <div className="mb-3">

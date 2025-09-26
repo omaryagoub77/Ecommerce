@@ -254,7 +254,7 @@ const Kids = ({ onAddToCart }) => {
                 {/* Info */}
                 <div className="p-4 sm:p-5">
                   <h3 className="font-semibold text-sm sm:text-lg text-gray-900 mb-1 truncate">{product.name}</h3>
-                  <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">{product.det || "No description available"}</p>
+                  {/* <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">{product.det || "No description available"}</p> */}
                   <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium capitalize">{product.category}</span>
 
                   <div className="flex items-center justify-between mt-2">

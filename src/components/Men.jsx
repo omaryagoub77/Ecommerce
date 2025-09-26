@@ -261,7 +261,7 @@ const Men = ({ onAddToCart, searchQuery }) => {
                   <img
                     src={product.images?.[0] || "/fallback.jpg"}
                     alt={product.name}
-                    className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-40  sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                   />
 
                   <button
@@ -293,7 +293,7 @@ const Men = ({ onAddToCart, searchQuery }) => {
 
                 <div className="p-3 sm:p-4">
                   <h3 className="font-semibold text-sm sm:text-lg text-gray-900 mb-1 truncate">{product.name}</h3>
-                  <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">{product.det || "No description available"}</p>
+                  {/* <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">{product.det || "No description available"}</p> */}
                   <div className="mb-3">
                     <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium capitalize">{product.category}</span>
                   </div>

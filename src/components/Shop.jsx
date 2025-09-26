@@ -222,9 +222,9 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           </span>
         </div>
         
-        <p className="text-gray-600 text-xs mb-2 line-clamp-2 flex-grow">
+        {/* <p className="text-gray-600 text-xs mb-2 line-clamp-2 flex-grow">
           {product.det}
-        </p>
+        </p> */}
         
         <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center space-x-1">
