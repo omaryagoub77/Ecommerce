@@ -111,18 +111,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   const originalPrice = parseFloat(product.price);
   const discountedPrice = parseFloat(product.newprice);
 // In ProductCard, add this before the return statement
-useEffect(() => {
-  if (product.images && product.images.length > 0) {
-    console.log("Product image URL:", product.images[0]);
-    // Test if the URL is valid
-    const img = new Image();
-    img.onload = () => console.log("Image loaded successfully");
-    img.onerror = (e) => console.error("Image failed to load:", e);
-    img.src = product.images[0];
-  } else {
-    console.log("No images available for product:", product.name);
-  }
-}, [product.images, product.name]);
+
   return (
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
       {/* Image Container */}
