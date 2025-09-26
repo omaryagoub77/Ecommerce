@@ -271,16 +271,7 @@ const ContactPage = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Find Us</h3>
                   <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg overflow-hidden">
-                    {/* Google Maps iframe placeholder */}
-                    <div className="w-full h-64 flex items-center justify-center bg-gray-200">
-                      <div className="text-center">
-                        <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                        </svg>
-                        <p className="text-gray-500">Google Maps Embed</p>
-                        <p className="text-gray-400 text-sm mt-1">Replace with actual iframe</p>
-                      </div>
-                    </div>
+          <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15946.304657256276!2d30.838408750000003!3d-2.30997585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x19c4d90047751e43%3A0x4d924a6ee700e1e5!2sMahama%20business%20center!5e0!3m2!1sen!2srw!4v1758882269137!5m2!1sen!2srw" width="600" height="450" style={{border:0}} allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                   </div>
                 </div>
               </div>
