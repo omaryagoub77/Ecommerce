@@ -133,7 +133,7 @@ const FavoritesPage = ({ onAddToCart }) => {
               You haven't added any items to your favorites yet.
             </p>
             <NavLink
-            to={"/"}
+            to={"/Ecommerce"}
               
               className="inline-flex items-center px-6 py-3 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
             >
