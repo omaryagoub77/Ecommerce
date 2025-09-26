@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ShoppingCart, Heart, Trash2, HeartOff } from "lucide-react";
+import { Link } from "react-router-dom";
 import { collection, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
@@ -164,16 +165,18 @@ const FavoritesPage = ({ onAddToCart }) => {
             >
               {/* Image */}
               <div className="relative overflow-hidden">
+                 <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
                 <img
                   src={product.images && product.images.length > 0 ? product.images[0] : "https://via.placeholder.com/300x300?text=No+Image"}
                   alt={product.name}
                   className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                  />
+                  </Link>
 
                 {/* Remove from Favorites Button */}
                 <button
                   onClick={() => handleRemoveFavorite(product.id)}
-                  className="absolute top-3 right-3 p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                  className="absolute top-3 right-3 p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-all duration-300 opacity-100 group-hover:opacity-100"
                   aria-label={`Remove ${product.name} from favorites`}
                 >
                   <Trash2 className="w-4 h-4" />
