@@ -269,7 +269,7 @@ const Kids = ({ onAddToCart }) => {
                       className="bg-red-700 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-800 transition-colors flex items-center space-x-1 sm:space-x-2"
                     >
                       <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <span className="text-xs sm:text-sm">Add</span>
+                      <span className="text-xs sm:text-sm"></span>
                     </button>
                   </div>
                 </div>

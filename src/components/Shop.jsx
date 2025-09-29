@@ -168,6 +168,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           </div>
         )}
         
+        
         {/* Image Error Fallback */}
         {imageError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
@@ -692,7 +693,6 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             </div>
           </div>
         )}
-
         {/* Load More Button */}
         {hasMore && (
           <div className="flex justify-center my-8">
