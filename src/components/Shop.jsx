@@ -35,7 +35,7 @@ class ErrorBoundary extends React.Component {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
           <div className="text-center p-6 bg-white rounded-2xl shadow-xl max-w-md mx-auto">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <WifiOff className="w-8 h-8 text-red-600" />
+              <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
             </div>
             <h2 className="text-xl font-bold text-red-600 mb-3">Something went wrong</h2>
             <p className="text-gray-600 mb-6">We're experiencing technical difficulties. Please try again later.</p>
@@ -172,7 +172,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
         {/* Image Error Fallback */}
         {imageError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
-            <WifiOff className="w-8 h-8 text-gray-400 mb-1" />
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-1" />
             <p className="text-gray-500 text-xs">Image unavailable</p>
           </div>
         )}
@@ -182,14 +182,14 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <button
             onClick={() => onAddToFavorites(product.id)}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
+            className={`p-1.5 sm:p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
               isFav
                 ? "bg-pink-100 text-pink-600"
                 : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
             }`}
           >
             <Heart
-              className={`w-5 h-5 transition-all duration-200 ${
+              className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-200 ${
                 isFav ? "fill-current" : ""
               }`}
             />
@@ -197,16 +197,16 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           
           <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
             <button
-              className="p-2 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
+              className="p-1.5 sm:p-2 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
             >
-              <Expand className="w-5 h-5" />
+              <Expand className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </Link>
         </div>
 
         {/* Discount Badge */}
         {originalPrice > discountedPrice && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-md z-10">
+          <div className="absolute top-2 left-2 bg-red-600 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-bold shadow-md z-10">
             {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
           </div>
         )}
@@ -241,10 +241,10 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           
           <button
             onClick={() => onAddToCart(product)}
-            className="p-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            className="p-1.5 sm:p-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
             aria-label={`Add ${product.name} to cart`}
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>
@@ -268,8 +268,8 @@ const SkeletonLoader = () => (
 
       {/* Action buttons placeholder */}
       <div className="absolute top-2 right-2 flex flex-col space-y-2">
-        <div className="w-9 h-9 bg-gray-300 rounded-full"></div>
-        <div className="w-9 h-9 bg-gray-300 rounded-full"></div>
+        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gray-300 rounded-full"></div>
+        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gray-300 rounded-full"></div>
       </div>
     </div>
 
@@ -291,7 +291,7 @@ const SkeletonLoader = () => (
           <div className="h-4 bg-gray-300 rounded w-10"></div>
           <div className="h-6 bg-gray-300 rounded w-16"></div>
         </div>
-        <div className="h-9 w-9 bg-gray-300 rounded-lg"></div>
+        <div className="h-7 w-7 sm:h-9 sm:w-9 bg-gray-300 rounded-lg"></div>
       </div>
     </div>
   </div>
@@ -310,7 +310,7 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
       <div className="max-w-2xl mx-auto">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
+            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
           </div>
           <input
             type="text"
@@ -326,7 +326,7 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
               aria-label="Clear search"
             >
-              <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
             </button>
           )}
         </div>
@@ -567,7 +567,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-8 h-8 text-red-600" />
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-3">No Products Available</h2>
           <p className="text-gray-600 mb-6 text-sm">We couldn't find any products at the moment. Please check back later.</p>
@@ -612,7 +612,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                   : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <Grid className="w-4 h-4" />
+              <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <button
               type="button"
@@ -623,7 +623,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                   : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>

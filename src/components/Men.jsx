@@ -60,6 +60,158 @@ const saveFavoritesToStorage = (favorites) => {
   }
 };
 
+// Memoized Product Card Component
+const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
+  const originalPrice = parseFloat(product.price) || 0;
+  const discountedPrice = parseFloat(product.newprice || product.newPrice) || originalPrice;
+
+  // Get the primary image URL (first image in the array)
+  const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
+
+  return (
+    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
+      {/* Image Container */}
+      <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
+        {primaryImage ? (
+          <img
+            src={primaryImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-500 text-xs">No Image</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Action Buttons */}
+        <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
+          <button
+            onClick={() => onAddToFavorites(product.id)}
+            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+            className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
+              isFav
+                ? "bg-pink-100 text-pink-600"
+                : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
+            }`}
+          >
+            <Heart
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
+                isFav ? "fill-current" : ""
+              }`}
+            />
+          </button>
+          
+          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
+            <button
+              className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
+            >
+              <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
+            </button>
+          </Link>
+        </div>
+
+        {/* Discount Badge */}
+        {originalPrice > discountedPrice && (
+          <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
+            {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
+          </div>
+        )}
+      </div>
+
+      {/* Product Info */}
+      <div className="p-2 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
+            {product.name}
+          </h3>
+          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
+            {product.category}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center space-x-1">
+            {originalPrice > discountedPrice && (
+              <span className="line-through text-xs text-gray-500">
+                ${originalPrice.toFixed(2)}
+              </span>
+            )}
+            <span className="text-sm sm:text-base font-bold text-red-700">
+              ${discountedPrice.toFixed(2)}
+            </span>
+          </div>
+          
+          <button
+            onClick={() => onAddToCart(product)}
+            className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.isFav === nextProps.isFav
+  );
+});
+
+// Skeleton Loader Component
+const SkeletonLoader = () => (
+  <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
+    {/* Image Placeholder (square aspect ratio) */}
+    <div className="relative bg-gray-200 aspect-[1/1]">
+      {/* Discount badge placeholder */}
+      <div className="absolute top-2 left-2 bg-gray-300 rounded-full w-12 h-4 max-[450px]:w-10 max-[450px]:h-3"></div>
+
+      {/* Action buttons placeholder */}
+      <div className="absolute top-2 right-2 flex flex-col space-y-2">
+        <div className="w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5 bg-gray-300 rounded-full"></div>
+        <div className="w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5 bg-gray-300 rounded-full"></div>
+      </div>
+    </div>
+
+    {/* Text / Info Section */}
+    <div className="p-2 flex flex-col flex-grow">
+      {/* Title & Category badge */}
+      <div className="flex justify-between items-center mb-2">
+        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+        <div className="h-4 bg-gray-300 rounded-full w-12"></div>
+      </div>
+
+      {/* Product description lines */}
+      <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
+      <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
+
+      {/* Price & cart button */}
+      <div className="flex items-center justify-between mt-auto">
+        <div className="space-x-2 flex items-center">
+          <div className="h-3 bg-gray-300 rounded w-8"></div>
+          <div className="h-5 bg-gray-300 rounded w-14"></div>
+        </div>
+        <div className="h-6 w-6 sm:h-7 sm:w-7 max-[450px]:w-5 max-[450px]:h-5 bg-gray-300 rounded-lg"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Section Header Component
+const SectionHeader = React.memo(({ title, count }) => (
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
+    <span className="bg-red-100 text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
+      {count} {count === 1 ? "item" : "items"}
+    </span>
+  </div>
+));
+
 const Men = ({ onAddToCart, searchQuery }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const {
@@ -183,144 +335,67 @@ const Men = ({ onAddToCart, searchQuery }) => {
     }
   }, [loading, hasMore, page, fetchMenProducts]);
 
-  // Skeleton loader
-  const renderSkeleton = () =>
-    Array(6)
-      .fill(0)
-      .map((_, index) => (
-        <div
-          key={index}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse"
-        >
-          <div className="w-full h-48 bg-gray-300"></div>
-          <div className="p-4">
-            <div className="h-5 bg-gray-300 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-1/2 mb-3"></div>
-            <div className="flex items-center justify-between">
-              <div className="h-6 w-16 bg-gray-300 rounded"></div>
-              <div className="h-8 w-24 bg-gray-300 rounded"></div>
-            </div>
-          </div>
-        </div>
-      ));
-
+  // Loading state
   if (loading && products.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-16">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Men Products</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {renderSkeleton()}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Men's Collection</h1>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
+          </div>
+          
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonLoader key={i} />
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
+  // Empty state
   if (products.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-16 flex items-center justify-center">
-        <div className="text-center">
-          <WifiOff className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">No Men Products</h1>
-          <p className="text-gray-600 text-lg mb-8">No products found matching your search.</p>
-          <a
-            href="/"
-            className="inline-flex items-center px-6 py-3 bg-red-700 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors"
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-3">No Products Available</h2>
+          <p className="text-gray-600 mb-6 text-sm">We couldn't find any products at the moment. Please check back later.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            <Heart className="w-5 h-5 mr-2" />
-            Start Shopping
-          </a>
+            Refresh Page
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Men Products</h1>
-          <p className="text-gray-600">
-            {products.length} product{products.length !== 1 ? "s" : ""} available
+          <SectionHeader title="Men's Collection" count={products.length} />
+          <p className="text-gray-600 text-sm">
+            Browse our premium selection of men's products
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          {products.map((product) => {
-            const originalPrice = parseFloat(product.price) || 0;
-            const discountedPrice = parseFloat(product.newprice || product.newPrice) || originalPrice;
-
-            return (
-              <div
-                key={product.id}
-                className="bg-white w-full rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
-              >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={product.images?.[0] || "/fallback.jpg"}
-                    alt={product.name}
-                    className="w-full h-40  sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-
-                  <button
-                    onClick={() => handleFavoriteClick(product.id)}
-                    className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                      safeFavoriteState.includes(product.id)
-                        ? "bg-pink-100 text-pink-600 scale-110"
-                        : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
-                    }`}
-                  >
-                    <Heart className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-200 ${safeFavoriteState.includes(product.id) ? "fill-current" : ""}`} />
-                  </button>
-                  
-                  {/* View product Details */}
-                  <Link to={`/product/${product.id}`}>
-                    <button
-                      className="absolute top-3 right-15 p-2 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100"
-                    >
-                      <Expand className="w-4 h-4 transition-all duration-200" />
-                    </button>
-                  </Link>
-                  
-                  {originalPrice > discountedPrice && (
-                    <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-semibold">
-                      {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3 sm:p-4">
-                  <h3 className="font-semibold text-sm sm:text-lg text-gray-900 mb-1 truncate">{product.name}</h3>
-                  {/* <p className="text-gray-600 text-xs sm:text-sm mb-2 line-clamp-2">{product.det || "No description available"}</p> */}
-                  <div className="mb-3">
-                    <span className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium capitalize">{product.category}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      {originalPrice > discountedPrice && (
-                        <span className="line-through text-sm sm:text-base text-red-400">
-                          ${originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                      <span className="text-base sm:text-lg font-bold text-gray-900">
-                        ${discountedPrice.toFixed(2)}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => onAddToCart(product)}
-                      className="bg-red-700 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-red-800 transition-colors flex items-center space-x-1 sm:space-x-2"
-                    >
-                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <span className="text-xs sm:text-sm"></span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              onAddToCart={onAddToCart}
+              onAddToFavorites={handleFavoriteClick}
+              isFav={safeFavoriteState.includes(product.id)}
+            />
+          ))}
         </div>
 
         {/* Load More Button */}
@@ -347,12 +422,12 @@ const Men = ({ onAddToCart, searchQuery }) => {
         )}
 
         <div className="mt-12 text-center">
-          <a
-            href="/"
+          <Link
+            to="/"
             className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
           >
             Continue Shopping
-          </a>
+          </Link>
         </div>
       </div>
     </div>
