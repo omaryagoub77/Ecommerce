@@ -14,6 +14,7 @@ import CheckoutModal from "./components/CheckoutModal";
 import ProductReviewPage from "./components/ProductReviewPage";
 import Footer from "./components/Footer";
 import ContactPage from "./components/ContactPage";
+import MyOrders from "./components/Myorders";
 
 import "./App.css";
 
@@ -115,6 +116,7 @@ function App() {
           }
         />
         <Route path="/men" element={<Men onAddToCart={addToCart} />} />
+        <Route path="/orders" element={<MyOrders onAddToCart={addToCart} />} />
         <Route path="/women" element={<Wemen onAddToCart={addToCart} />} />
         <Route path="/kids" element={<Kids onAddToCart={addToCart} />} />
         <Route path="/favorites" element={<FavoritesPage favorites={favorites} onAddToCart={addToCart} />} />
