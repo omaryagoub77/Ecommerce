@@ -1,5 +1,10 @@
 import { X, ShoppingCart, Trash2, Minus, Plus, CheckCircle } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
+
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+
+
 
 export default function CartSlideout({
   isOpen,
@@ -13,20 +18,40 @@ export default function CartSlideout({
   total
 }) {
   const [actionMessage, setActionMessage] = useState(null);
+  const [shippingPrices, setShippingPrices] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
-
+  
   // Handle showing action feedback
   const showActionMessage = (message, type = 'success') => {
     setActionMessage({ text: message, type });
     setTimeout(() => setActionMessage(null), 2000);
   };
+  
+  useEffect(() => {
+    const fetchShippingPrices = async () => {
+      const prices = {};
+      for (const item of cart) {
+        try {
+          const snap = await getDoc(doc(db, "products", item.id));
+          if (snap.exists()) {
+            prices[item.id] = snap.data().shippingPrice || 0;
+          }
+        } catch (err) {
+          console.error("Error fetching shipping price:", err);
+        }
+      }
+      setShippingPrices(prices);
+    };
+  
+    if (cart.length > 0) fetchShippingPrices();
+  }, [cart]);
 
   // Handle quantity changes with feedback
   const handleDecreaseQty = (id) => {
     onDecreaseQty(id);
     // showActionMessage("Item quantity decreased");
   };
-
+  
   const handleIncreaseQty = (id) => {
     onIncreaseQty(id);
     // showActionMessage("Item quantity increased");
@@ -57,6 +82,12 @@ export default function CartSlideout({
     }
   };
 
+  // Calculate subtotal, discount, and shipping
+  const subtotal = total;
+  const discount = subtotal * 0.2; // Assuming 20% discount like in the image
+  const shipping = subtotal > 0 ? 15 : 0; // $15 shipping fee if cart is not empty
+  const finalTotal = subtotal - discount + shipping;
+
   return (
     <div className={`fixed inset-0 z-50 ${isOpen ? 'block' : 'hidden'}`}>
       {/* Backdrop with blur effect */}
@@ -69,22 +100,21 @@ export default function CartSlideout({
       <div className={`fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Cart Header */}
-          <div className="flex items-center justify-between p-5 bg-gradient-to-r from-red-50 to-red-100 border-b border-red-200">
+          <div className="flex items-center justify-between p-5 bg-white border-b border-gray-200">
             <div className="flex items-center space-x-2">
-              <ShoppingCart className="w-6 h-6 text-red-700" />
-              <h2 className="text-xl font-bold text-gray-900">Shopping Cart</h2>
+              <h2 className="text-xl font-bold text-gray-900 uppercase tracking-wide">YOUR CART</h2>
               {cart.length > 0 && (
-                <span className="bg-red-700 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="bg-gray-900 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {cart.reduce((sum, item) => sum + item.qty, 0)}
                 </span>
               )}
             </div>
             <button 
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-red-200 transition-colors duration-200"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
               aria-label="Close cart"
             >
-              <X className="w-5 h-5 text-red-700" />
+              <X className="w-5 h-5 text-gray-700" />
             </button>
           </div>
 
@@ -104,16 +134,15 @@ export default function CartSlideout({
           <div className="flex-1 overflow-y-auto py-4 px-5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="bg-red-100 p-4 rounded-full mb-4">
-                  <ShoppingCart className="w-16 h-16 text-red-500" />
+                <div className="bg-gray-100 p-4 rounded-full mb-4">
+                  <ShoppingCart className="w-16 h-16 text-gray-400" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">Your cart is empty</h3>
                 <p className="text-gray-600 mb-6 max-w-xs">Add some products to get started with your shopping</p>
                 
-                
                 <button 
                   onClick={onClose}
-                  className="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-300 shadow-md"
+                  className="px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors duration-300"
                 >
                   Continue Shopping
                 </button>
@@ -123,36 +152,35 @@ export default function CartSlideout({
                 {cart.map(item => (
                   <div 
                     key={`${item.id}-${item.selectedSize || 'default'}`} 
-                    className="flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300"
+                    className="flex items-start p-4 bg-white border border-gray-200 rounded-lg"
                   >
                     <div className="relative">
                       <img 
                         src={item.image || (Array.isArray(item.images) ? item.images[0] : item.images)} 
                         alt={item.name} 
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-20 h-20 object-cover rounded-lg"
                         onError={(e) => {
                           e.target.src = "/placeholder.jpg";
                         }}
                       />
                       {item.selectedSize && (
-                        <span className="absolute bottom-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                           {item.selectedSize}
                         </span>
                       )}
                     </div>
                     
                     <div className="flex-1 min-w-0 ml-4">
-                      <h4 className="text-base font-semibold text-gray-900 truncate">
+                      <h4 className="text-base font-medium text-gray-900">
                         {item.name}
                       </h4>
-                             {/* Display selected size here */}
                       {item.selectedSize && (
                         <p className="text-sm text-gray-600 mt-1">
                           Size: <span className="font-medium">{item.selectedSize}</span>
                         </p>
                       )}
-                      <div className="flex items-center mt-1">
-                        <span className="text-red-700 font-bold">
+                      <div className="flex items-center mt-2">
+                        <span className="text-gray-900 font-medium">
                           ${parseFloat(item.price).toFixed(2)}
                         </span>
                         {item.originalPrice && item.originalPrice > item.price && (
@@ -163,11 +191,11 @@ export default function CartSlideout({
                       </div>
                     </div>
                     
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="flex items-center space-x-2 bg-gray-100 rounded-full p-1">
+                    <div className="flex flex-col items-end space-y-3">
+                      <div className="flex items-center space-x-2 border border-gray-300 rounded-md p-1">
                         <button 
                           onClick={() => handleDecreaseQty(item.id)}
-                          className="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-700 shadow-sm transition-colors duration-200"
+                          className="w-7 h-7 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                           aria-label="Decrease quantity"
                         >
                           <Minus className="w-3 h-3" />
@@ -177,7 +205,7 @@ export default function CartSlideout({
                         </span>
                         <button 
                           onClick={() => handleIncreaseQty(item.id)}
-                          className="w-7 h-7 rounded-full bg-white hover:bg-gray-200 flex items-center justify-center text-gray-700 shadow-sm transition-colors duration-200"
+                          className="w-7 h-7 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                           aria-label="Increase quantity"
                         >
                           <Plus className="w-3 h-3" />
@@ -200,26 +228,37 @@ export default function CartSlideout({
 
           {/* Cart Footer */}
           {cart.length > 0 && (
-            <div className="border-t border-gray-200 p-5 bg-gradient-to-b from-white to-gray-50">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="text-lg font-semibold text-gray-900">
-                  ${total.toFixed(2)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-600">Shipping:</span>
-                <span className="text-gray-900">
-                  Free
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center mb-6 text-lg font-bold">
-                <span>Total:</span>
-                <span className="text-red-700 text-xl">
-                  ${total.toFixed(2)}
-                </span>
+            <div className="border-t border-gray-200 p-5 bg-white">
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700 font-medium">Subtotal</span>
+                  <span className="text-gray-900 font-medium">
+                    ${subtotal.toFixed(2)}
+                  </span>
+                </div>
+{/*                 
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700 font-medium">Discount</span>
+                  <span className="text-red-600 font-medium">
+                    -${discount.toFixed(2)}
+                  </span>
+                </div> */}
+                
+           <div className="flex justify-between items-center">
+  <span className="text-gray-700 font-medium">Shipping</span>
+  <span className="text-gray-900 font-medium">
+    ${cart.reduce((sum, item) => sum + (shippingPrices[item.id] || 0), 0).toFixed(2)}
+  </span>
+</div>
+                
+                <div className="border-t border-gray-200 pt-3">
+                  <div className="flex justify-between items-center text-lg font-bold">
+                    <span className="text-gray-900">Total</span>
+                    <span className="text-gray-900">
+                      ${finalTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               </div>
               
               <button 
@@ -228,7 +267,7 @@ export default function CartSlideout({
                 className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center ${
                   isProcessing 
                     ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-red-700 hover:bg-red-800 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                    : 'bg-gray-900 hover:bg-gray-800'
                 } text-white`}
               >
                 {isProcessing ? (
@@ -248,16 +287,8 @@ export default function CartSlideout({
               </button>
               
               <button 
-                onClick={handleClearCart}
-                className="w-full mt-3 py-2 px-4 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-300 text-sm font-medium flex items-center justify-center"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear Cart
-              </button>
-              
-              <button 
                 onClick={onClose}
-                className="w-full mt-2 py-2 text-red-600 hover:text-red-800 transition-colors duration-300 text-sm font-medium"
+                className="w-full mt-3 py-2 text-gray-700 hover:text-gray-900 transition-colors duration-300 text-sm font-medium"
               >
                 Continue Shopping
               </button>

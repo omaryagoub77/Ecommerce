@@ -130,12 +130,22 @@ export default function CheckoutModal({
 
     try {
       setLoading(true);
+        let location = null;
+
+  // check if address looks like coords
+  if (form.address.includes(",")) {
+    const [lat, lng] = form.address.split(",").map(Number);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      location = { lat, lng };
+    }
+  }
       await addDoc(collection(db, "orders"), {
         client: form,
         items: cart,
         total,
         status: "pending",
         timestamp: new Date().toISOString(),
+        location,
       });
       setMessage("Order placed successfully!");
       setForm({ name: "", email: "", phone: "", address: "" });

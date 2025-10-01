@@ -135,7 +135,7 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   if (!product) {
     return (
       <div className="text-center py-20 px-4">
-        <div className="max-w-md mx-auto bg-white rounded-xl shadow-md p-8">
+        <div className="max-w-md mx-auto bg-white rounded-xl p-8">
           <div className="text-6xl mb-4">😕</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Product Not Found</h2>
           <p className="text-gray-600 mb-6">This product may have been removed or doesn't exist.</p>
@@ -151,23 +151,25 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center text-red-600 hover:text-red-800 mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5 mr-1" /> Back
-      </button>
+      <div className="px-4 pt-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-red-600 hover:text-red-800 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 mr-1" /> Back
+        </button>
+      </div>
 
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div className="flex flex-col lg:flex-row">
+      <div className="px-4 pb-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Side: Images */}
-          <div className="lg:w-1/2 p-6 lg:p-8">
+          <div className="lg:w-1/2">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Main Image */}
               <div className="flex-1">
-                <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+                <div className="aspect-square bg-white rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
                   {selectedImage && !imageError ? (
                     <img
                       src={selectedImage}
@@ -185,7 +187,7 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
               </div>
 
               {/* Thumbnails */}
-              <div className="flex flex-row md:flex-col gap-3 overflow-x-auto md:overflow-y-auto max-w-full md:max-w-[100px] lg:max-w-[120px]">
+              <div className="flex flex-row md:flex-col gap-3 overflow-x-auto md:overflow-y-auto max-w-full md:max-w-[100px] lg:max-w-[120px] py-2">
                 {product.images?.map((img, idx) => (
                   <button
                     key={idx}
@@ -214,97 +216,99 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
           </div>
 
           {/* Right Side: Info */}
-          <div className="lg:w-1/2 p-6 lg:p-8 border-t lg:border-t-0 lg:border-l border-gray-200">
-            <div className="flex flex-col h-full">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                <p className="text-gray-600 mb-6">{product.category}</p>
+          <div className="lg:w-1/2">
+            <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm">
+              <div className="flex flex-col h-full">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+                  <p className="text-gray-600 mb-6">{product.category}</p>
 
-                {/* Size Selection */}
-                {hasSizes && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Size</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {product.sizes.map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`px-4 py-2 rounded-lg border font-medium transition-all duration-200 ${
-                            selectedSize === size
-                              ? "bg-red-600 text-white border-red-600 shadow-md"
-                              : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                          }`}
-                        >
-                          {size.toUpperCase()}
-                        </button>
-                      ))}
+                  {/* Size Selection */}
+                  {hasSizes && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Size</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {product.sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`px-4 py-2 rounded-lg border font-medium transition-all duration-200 ${
+                              selectedSize === size
+                                ? "bg-red-600 text-white border-red-600 shadow-md"
+                                : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                            }`}
+                          >
+                            {size.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                      {hasSizes && !selectedSize && (
+                        <p className="mt-2 text-sm text-red-500">Please select a size</p>
+                      )}
                     </div>
-                    {hasSizes && !selectedSize && (
-                      <p className="mt-2 text-sm text-red-500">Please select a size</p>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-3xl font-bold text-gray-900">
-                      ${product.newPrice || product.price}
-                    </span>
-                    {product.newPrice && product.newPrice < product.price && (
-                      <span className="text-lg text-gray-500 line-through">
-                        ${product.price}
+                  {/* Price */}
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-3xl font-bold text-gray-900">
+                        ${product.newPrice || product.price}
                       </span>
-                    )}
-                    {product.newPrice && product.newPrice < product.price && (
-                      <span className="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
-                        Save ${(product.price - product.newPrice).toFixed(2)}
-                      </span>
-                    )}
+                      {product.newPrice && product.newPrice < product.price && (
+                        <span className="text-lg text-gray-500 line-through">
+                          ${product.price}
+                        </span>
+                      )}
+                      {product.newPrice && product.newPrice < product.price && (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
+                          Save ${(product.price - product.newPrice).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 mb-6">
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex-1 min-w-[200px] flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-                  >
-                    <ShoppingCart className="w-5 h-5" /> Add to Cart
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    <button
+                      onClick={handleAddToCart}
+                      className="flex-1 min-w-[200px] flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                    >
+                      <ShoppingCart className="w-5 h-5" /> Add to Cart
+                    </button>
 
-                  <button
-                    onClick={handleFavorite}
-                    className={`p-3 rounded-xl border transition-all duration-300 ${
-                      isFavorited
-                        ? "bg-red-50 text-red-600 border-red-200 shadow-sm"
-                        : "bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100 hover:shadow-sm"
-                    }`}
-                    title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Heart
-                      className={`w-6 h-6 transition-all duration-300 ${
-                        isFavorited ? "fill-red-600 text-red-600 scale-110" : ""
+                    <button
+                      onClick={handleFavorite}
+                      className={`p-3 rounded-xl border transition-all duration-300 ${
+                        isFavorited
+                          ? "bg-red-50 text-red-600 border-red-200 shadow-sm"
+                          : "bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100 hover:shadow-sm"
                       }`}
-                    />
-                  </button>
+                      title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Heart
+                        className={`w-6 h-6 transition-all duration-300 ${
+                          isFavorited ? "fill-red-600 text-red-600 scale-110" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Friendly message */}
+                  {message && (
+                    <div className="mb-6 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 animate-fadeIn">
+                      {message}
+                    </div>
+                  )}
                 </div>
 
-                {/* Friendly message */}
-                {message && (
-                  <div className="mb-6 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 animate-fadeIn">
-                    {message}
-                  </div>
-                )}
+                {/* Description */}
+                <div className="mt-auto pt-6 border-t border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line break-words">
+                    {product.det || "No description available for this product."}
+                  </p>
+                </div>
               </div>
-
-              {/* Description */}
-      <div className="mt-auto pt-6 border-t border-gray-200">
-  <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
-  <p className="text-gray-700 leading-relaxed whitespace-pre-line break-words">
-    {product.det || "No description available for this product."}
-  </p>
-</div>
             </div>
           </div>
         </div>
