@@ -168,7 +168,6 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           </div>
         )}
         
-        
         {/* Image Error Fallback */}
         {imageError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
@@ -182,14 +181,14 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <button
             onClick={() => onAddToFavorites(product.id)}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className={`p-1.5 sm:p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
+            className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
               isFav
                 ? "bg-pink-100 text-pink-600"
                 : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
             }`}
           >
             <Heart
-              className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-200 ${
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
                 isFav ? "fill-current" : ""
               }`}
             />
@@ -197,16 +196,16 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           
           <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
             <button
-              className="p-1.5 sm:p-2 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
+              className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
             >
-              <Expand className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
             </button>
           </Link>
         </div>
 
         {/* Discount Badge */}
         {originalPrice > discountedPrice && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-xs font-bold shadow-md z-10">
+          <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
             {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
           </div>
         )}
@@ -215,10 +214,10 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
       {/* Product Info */}
       <div className="p-2 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1">
-          <h3 className="font-bold text-base text-gray-900 line-clamp-1">
+          <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
             {product.name}
           </h3>
-          <span className="inline-block bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded-full text-xs font-medium capitalize">
+          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
             {product.category}
           </span>
         </div>
@@ -234,17 +233,17 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
                 ${originalPrice.toFixed(2)}
               </span>
             )}
-            <span className="text-lg font-bold text-red-700">
+            <span className="text-sm sm:text-base font-bold text-red-700">
               ${discountedPrice.toFixed(2)}
             </span>
           </div>
           
           <button
             onClick={() => onAddToCart(product)}
-            className="p-1.5 sm:p-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
             aria-label={`Add ${product.name} to cart`}
           >
-            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+            <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
           </button>
         </div>
       </div>
@@ -261,37 +260,37 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
 // Skeleton Loader Component
 const SkeletonLoader = () => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
-    {/* Image Placeholder (square aspect ratio) */}
-    <div className="relative bg-gray-200 aspect-[1/1]">
-      {/* Discount badge placeholder */}
-      <div className="absolute top-2 left-2 bg-gray-300 rounded-full w-14 h-5"></div>
+    {/* Image Container */}
+    <div className="relative overflow-hidden bg-gray-200 aspect-[1/1]">
+      {/* Discount Badge Placeholder */}
+      <div className="absolute top-2 left-2 bg-gray-300 rounded-full px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 w-12 h-4 max-[450px]:w-10 max-[450px]:h-3"></div>
 
-      {/* Action buttons placeholder */}
-      <div className="absolute top-2 right-2 flex flex-col space-y-2">
-        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gray-300 rounded-full"></div>
-        <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gray-300 rounded-full"></div>
+      {/* Action Buttons Placeholder */}
+      <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
+        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
+        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
       </div>
     </div>
 
-    {/* Text / Info Section */}
+    {/* Product Info */}
     <div className="p-2 flex flex-col flex-grow">
-      {/* Title & Category badge */}
-      <div className="flex justify-between items-center mb-2">
-        <div className="h-5 bg-gray-300 rounded w-2/3"></div>
-        <div className="h-5 bg-gray-300 rounded-full w-16"></div>
+      {/* Title & Category Badge */}
+      <div className="flex justify-between items-start mb-1">
+        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+        <div className="h-4 bg-gray-300 rounded-full w-12"></div>
       </div>
-
-      {/* Product description lines */}
+      
+      {/* Description Lines */}
       <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
       <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
 
-      {/* Price & cart button */}
+      {/* Price & Cart Button */}
       <div className="flex items-center justify-between mt-auto">
-        <div className="space-x-2 flex items-center">
-          <div className="h-4 bg-gray-300 rounded w-10"></div>
-          <div className="h-6 bg-gray-300 rounded w-16"></div>
+        <div className="flex items-center space-x-1">
+          <div className="h-3 bg-gray-300 rounded w-8"></div>
+          <div className="h-5 bg-gray-300 rounded w-14"></div>
         </div>
-        <div className="h-7 w-7 sm:h-9 sm:w-9 bg-gray-300 rounded-lg"></div>
+        <div className="p-1 sm:p-1.5 max-[450px]:p-1 bg-gray-300 rounded-lg w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
       </div>
     </div>
   </div>

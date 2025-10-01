@@ -1,17 +1,20 @@
-import React, { useState } from "react";
-import { Routes, Route, HashRouter , BrowserRouter } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, HashRouter } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 
 import ShopPage from "./components/Shop";
 import Men from "./components/Men";
 import Wemen from "./components/Wemen";
 import Kids from "./components/Kids";
-import FavoritesPage from "./components/Favourite"; // ✅ Import FavoritesPage
+import FavoritesPage from "./components/Favourite";
 import Header from "./components/Header";
 import CartSlideout from "./components/CartSlideout";
 import CheckoutModal from "./components/CheckoutModal";
-        import ProductReviewPage from "./components/ProductReviewPage";
-        import Footer from "./components/Footer";
-        import ContactPage  from "./components/ContactPage";
+import ProductReviewPage from "./components/ProductReviewPage";
+import Footer from "./components/Footer";
+import ContactPage from "./components/ContactPage";
+
 import "./App.css";
 
 function App() {
@@ -20,20 +23,19 @@ function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Favorite handlers
-  const handleAddToFavorites = (product) => {
-    setFavorites((prev) => {
-      if (prev.find((p) => p.id === product.id)) return prev; // already favorited
-      return [...prev, product];
+  // ✅ Track logged in user
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
     });
-  };
+    return () => unsubscribe();
+  }, []);
 
-  const handleRemoveFromFavorites = (productId) => {
-    setFavorites((prev) => prev.filter((p) => p.id !== productId));
-  };
-
-  // Cart handlers
+  // --- Cart handlers ---
   const addToCart = (product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
@@ -47,26 +49,23 @@ function App() {
     });
   };
 
-  const increaseQty = (id) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
-      )
-    );
-  };
+  const increaseQty = (id) =>
+    setCart(cart.map((item) =>
+      item.id === id ? { ...item, qty: item.qty + 1 } : item
+    ));
 
-  const decreaseQty = (id) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id ? { ...item, qty: item.qty > 1 ? item.qty - 1 : 1 } : item
-      )
-    );
-  };
+  const decreaseQty = (id) =>
+    setCart(cart.map((item) =>
+      item.id === id ? { ...item, qty: item.qty > 1 ? item.qty - 1 : 1 } : item
+    ));
 
   const removeItem = (id) => setCart(cart.filter((item) => item.id !== id));
   const clearCart = () => setCart([]);
   const getTotalItems = () => cart.reduce((sum, item) => sum + item.qty, 0);
-  const getTotalPrice = () => cart.reduce((sum, item) => sum + parseFloat(item.price) * item.qty, 0);
+  const getTotalPrice = () =>
+    cart.reduce((sum, item) => sum + parseFloat(item.price) * item.qty, 0);
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <HashRouter>
@@ -97,6 +96,7 @@ function App() {
         cart={cart}
         total={getTotalPrice()}
         onOrderSuccess={clearCart}
+        user={user} // ✅ pass user to modal
       />
 
       <Routes>
@@ -105,86 +105,24 @@ function App() {
           element={
             <ShopPage
               onAddToCart={addToCart}
-              onAddToFavorites={handleAddToFavorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
+              onAddToFavorites={(p) => setFavorites([...favorites, p])}
+              onRemoveFromFavorites={(id) =>
+                setFavorites(favorites.filter((f) => f.id !== id))
+              }
               favorites={favorites}
               searchQuery={searchQuery}
             />
           }
         />
-        <Route
-          path="/Ecommerce"
-          element={
-            <ShopPage
-              onAddToCart={addToCart}
-              onAddToFavorites={handleAddToFavorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
-              favorites={favorites}
-              searchQuery={searchQuery}
-            />
-          }
-        />
-        <Route
-          path="/men"
-          element={
-            <Men
-              onAddToCart={addToCart}
-              onAddToFavorites={handleAddToFavorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
-              favorites={favorites}
-              searchQuery={searchQuery}
-            />
-          }
-        />
-        <Route
-          path="/women"
-          element={
-            <Wemen
-              onAddToCart={addToCart}
-              onAddToFavorites={handleAddToFavorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
-              favorites={favorites}
-              searchQuery={searchQuery}
-            />
-          }
-        />
-        <Route
-          path="/kids"
-          element={
-            <Kids
-              onAddToCart={addToCart}
-              onAddToFavorites={handleAddToFavorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
-              favorites={favorites}
-              searchQuery={searchQuery}
-            />
-          }
-        />
-        {/* ✅ Favorites Page Route */}
-        <Route
-          path="/favorites"
-          element={
-            <FavoritesPage
-              favorites={favorites}
-              onRemoveFromFavorites={handleRemoveFromFavorites}
-              onAddToCart={addToCart}
-            />
-          }
-        />
-<Route
-  path="/product/:id"
-  element={
-    <ProductReviewPage
-      onAddToCart={addToCart}
-      onAddToFavorites={handleAddToFavorites}
-      favorites={favorites}
-    />
-  }
-/>
+        <Route path="/men" element={<Men onAddToCart={addToCart} />} />
+        <Route path="/women" element={<Wemen onAddToCart={addToCart} />} />
+        <Route path="/kids" element={<Kids onAddToCart={addToCart} />} />
+        <Route path="/favorites" element={<FavoritesPage favorites={favorites} onAddToCart={addToCart} />} />
+        <Route path="/product/:id" element={<ProductReviewPage onAddToCart={addToCart} />} />
         <Route path="/contact" element={<ContactPage />} />
       </Routes>
-      <Footer />
 
+      <Footer />
     </HashRouter>
   );
 }

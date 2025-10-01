@@ -10,7 +10,10 @@ import {
   User,
 } from "lucide-react";
 import { collection, addDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db, auth } from "../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+
+import SignUp from "../Auth/SignUp";
 
 function LocationPreview({ address }) {
   if (!address) {
@@ -22,7 +25,6 @@ function LocationPreview({ address }) {
   }
 
   const encoded = encodeURIComponent(address);
-
   return (
     <iframe
       title="map-preview"
@@ -52,6 +54,16 @@ export default function CheckoutModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [formErrors, setFormErrors] = useState({});
+  const [user, setUser] = useState(null); // ✅ track auth state
+  const [showSignUp, setShowSignUp] = useState(false);
+
+  // ✅ Listen for login state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -192,191 +204,175 @@ export default function CheckoutModal({
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Order Summary */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <ShoppingCart className="w-5 h-5 mr-2 text-red-600" />
-                Order Summary
-              </h3>
-              <div className="bg-gray-50 rounded-xl p-4 max-h-60 overflow-y-auto">
-                {cart.map((item, idx) => (
-                  <div
-                    key={`${item.id}-${idx}`}
-                    className="flex items-center justify-between py-3 border-b border-gray-200 last:border-0"
+            {!user ? (
+              // 🔑 Show login/signup instead of form
+              <div>
+                {showSignUp ? <SignUp /> : <SignUp />}
+                <p className="mt-4 text-center text-sm text-gray-600">
+                  {showSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
+                  <button
+                    onClick={() => setShowSignUp(!showSignUp)}
+                    className="text-red-600 hover:underline"
                   >
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={
-                          item.image ||
-                          (Array.isArray(item.images)
-                            ? item.images[0]
-                            : item.images)
-                        }
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                        onError={(e) => (e.target.src = "/placeholder.jpg")}
-                      />
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {item.name}
+                    {showSignUp ? "Sign In" : "Sign Up"}
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* ✅ Order Summary + Form (your original content) */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <ShoppingCart className="w-5 h-5 mr-2 text-red-600" />
+                    Order Summary
+                  </h3>
+                  <div className="bg-gray-50 rounded-xl p-4 max-h-60 overflow-y-auto">
+                    {cart.map((item, idx) => (
+                      <div
+                        key={`${item.id}-${idx}`}
+                        className="flex items-center justify-between py-3 border-b border-gray-200 last:border-0"
+                      >
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={
+                              item.image ||
+                              (Array.isArray(item.images)
+                                ? item.images[0]
+                                : item.images)
+                            }
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {item.name}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                              <span>Qty: {item.qty}</span>
+                              {item.selectedSize && (
+                                <span>Size: {item.selectedSize}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                          <span>Qty: {item.qty}</span>
-                          {item.selectedSize && (
-                            <span>Size: {item.selectedSize}</span>
-                          )}
+                        <div className="text-sm font-semibold text-gray-900">
+                          ${(item.qty * item.price).toFixed(2)}
                         </div>
                       </div>
-                    </div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      ${(item.qty * item.price).toFixed(2)}
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                    <span className="text-lg font-semibold text-gray-900">
+                      Total:
+                    </span>
+                    <span className="text-xl font-bold text-red-700">
+                      ${total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <User className="w-4 h-4 mr-2 text-red-600" />
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border rounded-lg"
+                      placeholder="Enter your full name"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Mail className="w-4 h-4 mr-2 text-red-600" />
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border rounded-lg"
+                      placeholder="Enter your email"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <Phone className="w-4 h-4 mr-2 text-red-600" />
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border rounded-lg"
+                      placeholder="Enter your phone number"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <MapPin className="w-4 h-4 mr-2 text-red-600" />
+                      Shipping Address
+                    </label>
+                    <div className="flex gap-2 mb-2">
+                      <textarea
+                        name="address"
+                        value={form.address}
+                        onChange={handleChange}
+                        rows={2}
+                        className="flex-1 px-4 py-3 border rounded-lg resize-none"
+                        placeholder="Enter your shipping address or coords"
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        onClick={useMyLocation}
+                        className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm"
+                      >
+                        Use My Location
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-                <span className="text-lg font-semibold text-gray-900">
-                  Total:
-                </span>
-                <span className="text-xl font-bold text-red-700">
-                  ${total.toFixed(2)}
-                </span>
-              </div>
-            </div>
 
-            {/* Checkout Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <User className="w-4 h-4 mr-2 text-red-600" />
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
-                    formErrors.name
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-red-600 focus:border-red-600"
-                  }`}
-                  placeholder="Enter your full name"
-                  disabled={loading}
-                />
-                {formErrors.name && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-                )}
-              </div>
+                  {/* Map Preview */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <MapPin className="w-4 h-4 mr-2 text-red-600" />
+                      Location Preview
+                    </label>
+                    <div className="w-full h-64 rounded-lg overflow-hidden border">
+                      <LocationPreview address={form.address} />
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <Mail className="w-4 h-4 mr-2 text-red-600" />
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
-                    formErrors.email
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-red-600 focus:border-red-600"
-                  }`}
-                  placeholder="Enter your email"
-                  disabled={loading}
-                />
-                {formErrors.email && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {formErrors.email}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <Phone className="w-4 h-4 mr-2 text-red-600" />
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
-                    formErrors.phone
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-red-600 focus:border-red-600"
-                  }`}
-                  placeholder="Enter your phone number"
-                  disabled={loading}
-                />
-                {formErrors.phone && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {formErrors.phone}
-                  </p>
-                )}
-              </div>
-
-              {/* Address + Location Button */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                  Shipping Address
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <textarea
-                    name="address"
-                    value={form.address}
-                    onChange={handleChange}
-                    rows={2}
-                    className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none ${
-                      formErrors.address
-                        ? "border-red-500 focus:ring-red-500"
-                        : "border-gray-300 focus:ring-red-600 focus:border-red-600"
-                    }`}
-                    placeholder="Enter your shipping address or coords"
-                    disabled={loading}
-                  />
                   <button
-                    type="button"
-                    onClick={useMyLocation}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm"
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-red-700 hover:bg-red-800 text-white py-3 px-4 rounded-lg font-medium"
                   >
-                    Use My Location
+                    {loading ? "Processing Order..." : "Place Order"}
                   </button>
-                </div>
-                {formErrors.address && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {formErrors.address}
-                  </p>
-                )}
-              </div>
-
-              {/* Map Preview */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                  Location Preview
-                </label>
-                <div className="w-full h-64 rounded-lg overflow-hidden border">
-                  <LocationPreview address={form.address} />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-red-700 hover:bg-red-800 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? "Processing Order..." : "Place Order"}
-              </button>
-            </form>
+                </form>
+              </>
+            )}
           </div>
         </div>
       </div>
     </>
   );
 }
-
