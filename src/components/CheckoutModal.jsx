@@ -15,7 +15,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import SignUp from "../Auth/SignUp";
 // If you have a SignIn component, import it here:
-// import SignIn from "../Auth/SignIn";
+import SignIn from "../Auth/SignIn";
 
 function LocationPreview({ address }) {
   if (!address) {
@@ -230,7 +230,7 @@ export default function CheckoutModal({
             {!user ? (
               // 🔑 Show login/signup instead of form
               <div>
-                {showSignUp ? <SignUp /> : <SignUp />}
+                {showSignUp ? <SignUp /> : <SignIn />}
                 {/* Replace <SignUp /> with <SignIn /> if you have a login form */}
                 <p className="mt-4 text-center text-sm text-gray-600">
                   {showSignUp
