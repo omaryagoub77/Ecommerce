@@ -16,7 +16,7 @@ function SignIn() {
       await login(email, password);
       alert("Signed in successfully!");
     } catch (err) {
-      setError(err.message);
+      setError("Invalid email or password");
     } finally {
       setLoading(false);
     }

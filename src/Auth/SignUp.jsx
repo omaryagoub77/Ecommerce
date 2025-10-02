@@ -24,7 +24,7 @@ function SignUp() {
       await register(email, password);
     //   alert("User registered successfully!");
     } catch (err) {
-      setError(err.message);
+      setError("An account already exists for this email.");
     } finally {
       setLoading(false);
     }
