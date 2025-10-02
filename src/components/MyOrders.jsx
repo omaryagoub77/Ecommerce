@@ -443,7 +443,7 @@ const MyOrders = () => {
 
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
             <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Cancellation</h3>
             <p className="text-gray-600 mb-6">Are you sure you want to request cancellation for order #{cancelOrderId}? The admin will review your request.</p>
@@ -467,7 +467,7 @@ const MyOrders = () => {
 
       {/* Remove Confirmation Modal */}
       {showRemoveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
             <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Removal</h3>
             <p className="text-gray-600 mb-6">Are you sure you want to remove order #{removeOrderId} from your orders list? This will only remove it from your view.</p>
