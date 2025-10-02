@@ -93,14 +93,14 @@ function SignIn() {
             </button>
           </form>
           
-          <div className="mt-6 text-center">
+          {/* <div className="mt-6 text-center">
             <p className="text-gray-600">
               Don't have an account?{" "}
               <a href="/signup" className="font-medium text-red-600 hover:text-red-800 transition duration-200">
                 Sign up
               </a>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

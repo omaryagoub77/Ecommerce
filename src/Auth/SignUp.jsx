@@ -114,7 +114,7 @@ function SignUp() {
           {/* <div className="mt-6 text-center">
             <p className="text-gray-600">
               Already have an account?{" "}
-              <a href="/Ecommerce/signin" className="font-medium text-red-600 hover:text-red-800 transition duration-200">
+              <a href="/signin" className="font-medium text-red-600 hover:text-red-800 transition duration-200">
                 Sign in
               </a>
             </p>

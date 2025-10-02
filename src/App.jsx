@@ -24,17 +24,17 @@ function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // const [user, setUser] = useState(null);
+  // const [loading, setLoading] = useState(true);
 
   // ✅ Track logged in user
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+  //     setUser(currentUser);
+  //     setLoading(false);
+  //   });
+  //   return () => unsubscribe();
+  // }, []);
 
   // --- Cart handlers ---
   const addToCart = (product) => {
@@ -66,7 +66,7 @@ function App() {
   const getTotalPrice = () =>
     cart.reduce((sum, item) => sum + parseFloat(item.price) * item.qty, 0);
 
-  if (loading) return <p>Loading...</p>;
+  // if (loading) return <p>Loading...</p>;
 
   return (
     <HashRouter>
@@ -97,7 +97,7 @@ function App() {
         cart={cart}
         total={getTotalPrice()}
         onOrderSuccess={clearCart}
-        user={user} // ✅ pass user to modal
+        // user={user} // ✅ pass user to modal
       />
 
       <Routes>

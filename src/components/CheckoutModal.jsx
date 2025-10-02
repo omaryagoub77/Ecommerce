@@ -14,6 +14,8 @@ import { db, auth } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 
 import SignUp from "../Auth/SignUp";
+// If you have a SignIn component, import it here:
+// import SignIn from "../Auth/SignIn";
 
 function LocationPreview({ address }) {
   if (!address) {
@@ -54,10 +56,10 @@ export default function CheckoutModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [formErrors, setFormErrors] = useState({});
-  const [user, setUser] = useState(null); // ✅ track auth state
+  const [user, setUser] = useState(null);
   const [showSignUp, setShowSignUp] = useState(false);
 
-  // ✅ Listen for login state
+  // ✅ Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -96,33 +98,33 @@ export default function CheckoutModal({
     );
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (!form.name.trim()) errors.name = "Name is required";
-    if (!form.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Please enter a valid email address";
-    }
-    if (!form.phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (
-      !/^\+?[0-9\s\-()]{10,15}$/.test(form.phone.replace(/\s/g, ""))
-    ) {
-      errors.phone = "Please enter a valid phone number";
-    }
-    if (!form.address.trim()) errors.address = "Address is required";
+  // const validateForm = () => {
+  //   const errors = {};
+  //   if (!form.name.trim()) errors.name = "Name is required";
+  //   if (!form.email.trim()) {
+  //     errors.email = "Email is required";
+  //   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  //     errors.email = "Please enter a valid email address";
+  //   }
+  //   if (!form.phone.trim()) {
+  //     errors.phone = "Phone number is required";
+  //   } else if (
+  //     !/^\+?[0-9\s\-()]{10,15}$/.test(form.phone.replace(/\s/g, ""))
+  //   ) {
+  //     errors.phone = "Please enter a valid phone number";
+  //   }
+  //   if (!form.address.trim()) errors.address = "Address is required";
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  //   setFormErrors(errors);
+  //   return Object.keys(errors).length === 0;
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      setMessage("Please correct the errors in the form.");
-      return;
-    }
+    // if (!validateForm()) {
+    //   setMessage("Please correct the errors in the form.");
+    //   return;
+    // }
     if (!cart || cart.length === 0) {
       setMessage("Your cart is empty.");
       return;
@@ -130,23 +132,34 @@ export default function CheckoutModal({
 
     try {
       setLoading(true);
-        let location = null;
 
-  // check if address looks like coords
-  if (form.address.includes(",")) {
-    const [lat, lng] = form.address.split(",").map(Number);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      location = { lat, lng };
-    }
-  }
-      await addDoc(collection(db, "orders"), {
+      let location = null;
+      if (form.address.includes(",")) {
+        const [lat, lng] = form.address.split(",").map(Number);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          location = { lat, lng };
+        }
+      }
+
+      // ✅ Build order object
+      const newOrder = {
+        id: Date.now().toString(), // unique ID for localStorage
         client: form,
         items: cart,
         total,
-        status: "pending",
+        status: "Pending", // match MyOrders styling
         timestamp: new Date().toISOString(),
         location,
-      });
+        userId: user?.uid || null,
+      };
+
+      // Save to Firestore
+      await addDoc(collection(db, "orders"), newOrder);
+
+      // ✅ Save also to localStorage
+      const existingOrders = JSON.parse(localStorage.getItem("orders")) || [];
+      localStorage.setItem("orders", JSON.stringify([...existingOrders, newOrder]));
+
       setMessage("Order placed successfully!");
       setForm({ name: "", email: "", phone: "", address: "" });
       onOrderSuccess?.();
@@ -218,8 +231,11 @@ export default function CheckoutModal({
               // 🔑 Show login/signup instead of form
               <div>
                 {showSignUp ? <SignUp /> : <SignUp />}
+                {/* Replace <SignUp /> with <SignIn /> if you have a login form */}
                 <p className="mt-4 text-center text-sm text-gray-600">
-                  {showSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
+                  {showSignUp
+                    ? "Already have an account?"
+                    : "Don’t have an account?"}{" "}
                   <button
                     onClick={() => setShowSignUp(!showSignUp)}
                     className="text-red-600 hover:underline"
@@ -230,7 +246,7 @@ export default function CheckoutModal({
               </div>
             ) : (
               <>
-                {/* ✅ Order Summary + Form (your original content) */}
+                {/* ✅ Order Summary + Form */}
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <ShoppingCart className="w-5 h-5 mr-2 text-red-600" />
@@ -297,6 +313,9 @@ export default function CheckoutModal({
                       placeholder="Enter your full name"
                       disabled={loading}
                     />
+                    {formErrors.name && (
+                      <p className="text-sm text-red-600">{formErrors.name}</p>
+                    )}
                   </div>
 
                   {/* Email */}
@@ -314,6 +333,9 @@ export default function CheckoutModal({
                       placeholder="Enter your email"
                       disabled={loading}
                     />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-600">{formErrors.email}</p>
+                    )}
                   </div>
 
                   {/* Phone */}
@@ -331,6 +353,9 @@ export default function CheckoutModal({
                       placeholder="Enter your phone number"
                       disabled={loading}
                     />
+                    {formErrors.phone && (
+                      <p className="text-sm text-red-600">{formErrors.phone}</p>
+                    )}
                   </div>
 
                   {/* Address */}
@@ -357,6 +382,11 @@ export default function CheckoutModal({
                         Use My Location
                       </button>
                     </div>
+                    {formErrors.address && (
+                      <p className="text-sm text-red-600">
+                        {formErrors.address}
+                      </p>
+                    )}
                   </div>
 
                   {/* Map Preview */}
