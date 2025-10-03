@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, memo } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { WifiOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGesture } from "@use-gesture/react";
@@ -44,39 +44,34 @@ const HeroSlider = () => {
   const preloadedImages = useRef(new Set());
   const sliderRef = useRef(null);
 
-  // Fetch slides from Firebase with caching simulation
+  // Real-time fetch slides from Firebase with ordering
   useEffect(() => {
-    const fetchSlides = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Check if we have cached data (simulated)
-        const cachedSlides = sessionStorage.getItem('heroSlides');
-        if (cachedSlides) {
-          setSlides(JSON.parse(cachedSlides));
-          setLoading(false);
-          return;
-        }
-        
-        const querySnapshot = await getDocs(collection(db, "heroes"));
-        const slideData = querySnapshot.docs.map((doc) => ({
+    setLoading(true);
+    setError(null);
+    
+    // Create query to order by createdAt descending (newest first)
+    const q = query(collection(db, "heroes"), orderBy("createdAt", "desc"));
+    
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const slideData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        
-        // Cache the slides
-        sessionStorage.setItem('heroSlides', JSON.stringify(slideData));
         setSlides(slideData);
-      } catch (err) {
+        setLoading(false);
+      },
+      (err) => {
         console.error("Error fetching slides:", err);
         setError("Failed to load slides. Please try again.");
-      } finally {
         setLoading(false);
       }
-    };
+    );
     
-    fetchSlides();
+    // Clean up listener on unmount
+    return () => unsubscribe();
   }, []);
 
   // Detect touch devices

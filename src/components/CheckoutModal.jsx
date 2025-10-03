@@ -17,7 +17,7 @@ import SignUp from "../Auth/SignUp";
 import SignIn from "../Auth/SignIn";
 
 // Leaflet imports
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -29,8 +29,24 @@ const markerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
-function LocationPicker({ setAddress }) {
-  const [position, setPosition] = useState(null);
+// Component to update map view when address changes
+function MapUpdater({ address }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (address && address.includes(",")) {
+      const [lat, lng] = address.split(",").map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        map.setView([lat, lng], 15);
+      }
+    }
+  }, [address, map]);
+  
+  return null;
+}
+
+function LocationPicker({ setAddress, initialPosition }) {
+  const [position, setPosition] = useState(initialPosition);
 
   useMapEvents({
     click(e) {
@@ -83,6 +99,7 @@ export default function CheckoutModal({
   const [formErrors, setFormErrors] = useState({});
   const [user, setUser] = useState(null);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [mapCenter, setMapCenter] = useState([-1.9577, 30.1127]); // Kigali default center
 
   // Track auth state
   useEffect(() => {
@@ -91,6 +108,16 @@ export default function CheckoutModal({
     });
     return () => unsubscribe();
   }, []);
+
+  // Update map center when address changes
+  useEffect(() => {
+    if (form.address && form.address.includes(",")) {
+      const [lat, lng] = form.address.split(",").map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMapCenter([lat, lng]);
+      }
+    }
+  }, [form.address]);
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -116,6 +143,7 @@ export default function CheckoutModal({
         const { latitude, longitude } = pos.coords;
         const coords = `${latitude},${longitude}`;
         setForm((prev) => ({ ...prev, address: coords }));
+        // Map center will be updated via the useEffect above
       },
       (err) => {
         alert("Failed to get location: " + err.message);
@@ -435,20 +463,24 @@ export default function CheckoutModal({
                     </div>
                     <div className="w-full h-64 rounded-lg overflow-hidden border">
                       <MapContainer
-                        center={[-1.9577, 30.1127]} // Kigali default center
+                        center={mapCenter}
                         zoom={13}
                         style={{ height: "100%", width: "100%" }}
                       >
                        <TileLayer
   url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
   attribution="Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
-/>
+ />
 
                         <LocationPicker
                           setAddress={(coords) =>
                             setForm((prev) => ({ ...prev, address: coords }))
                           }
+                          initialPosition={form.address && form.address.includes(",") 
+                            ? form.address.split(",").map(Number) 
+                            : mapCenter}
                         />
+                        <MapUpdater address={form.address} />
                       </MapContainer>
                     </div>
                     {form.address && (

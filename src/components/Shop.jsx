@@ -198,12 +198,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
      
         </div>
 
-        {/* Discount Badge */}
-        {originalPrice > discountedPrice && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
-            {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
-          </div>
-        )}
+   
       </div>
 
       {/* Product Info */}
@@ -212,9 +207,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
             {product.name}
           </h3>
-          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
-            {product.category}
-          </span>
+ 
         </div>
         
         {/* <p className="text-gray-600 text-xs mb-2 line-clamp-2 flex-grow">
@@ -231,6 +224,25 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
             <span className="text-sm sm:text-base font-bold text-red-700">
               ${discountedPrice.toFixed(2)}
             </span>
+                         {/* Discount Badge */}
+     {originalPrice > discountedPrice && (
+  <div
+    className="
+      line-through
+      bg-pink-100 text-pink-600 
+      px-2 py-1 
+      rounded-full 
+      text-xs font-bold 
+
+      sm:px-1.5 sm:py-0.5 sm:text-[11px] 
+      max-[500px]:px-1 max-[500px]:py-0.5 max-[500px]:text-[10px] 
+      max-[400px]:px-0.5 max-[400px]:py-0.5 max-[400px]:text-[9px]
+    "
+  >
+    {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}%
+  </div>
+)}
+
           </div>
           
           <button
@@ -628,7 +640,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <SectionHeader title="Men's Collection" count={men.length} />
             <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
               viewMode === "grid" 
-                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
                 : "grid-cols-1"
             }`}>
               {men.map((product) => (
