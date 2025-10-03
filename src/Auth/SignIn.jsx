@@ -6,6 +6,7 @@ function SignIn() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -14,7 +15,7 @@ function SignIn() {
     
     try {
       await login(email, password);
-      alert("Signed in successfully!");
+      setSuccess("Signed in successfully!");
     } catch (err) {
       setError("Invalid email or password");
     } finally {
@@ -35,6 +36,11 @@ function SignIn() {
           {error && (
             <div className="mb-6 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-6 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
+              {success}
             </div>
           )}
           
