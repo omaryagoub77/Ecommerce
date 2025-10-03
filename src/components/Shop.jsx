@@ -11,7 +11,6 @@ const ShoppingCart = lazy(() => import('lucide-react').then(mod => ({ default: m
 const WifiOff = lazy(() => import('lucide-react').then(mod => ({ default: mod.WifiOff })));
 const Heart = lazy(() => import('lucide-react').then(mod => ({ default: mod.Heart })));
 const Search = lazy(() => import('lucide-react').then(mod => ({ default: mod.Search })));
-const Expand = lazy(() => import('lucide-react').then(mod => ({ default: mod.Expand })));
 const X = lazy(() => import('lucide-react').then(mod => ({ default: mod.X })));
 const Grid = lazy(() => import('lucide-react').then(mod => ({ default: mod.Grid })));
 const List = lazy(() => import('lucide-react').then(mod => ({ default: mod.List })));
@@ -143,15 +142,16 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
+      <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
         {primaryImage ? (
           <LazyLoadImage
-            src={primaryImage}
-            alt={product.name}
-            effect=""
-            className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-            placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+          src={primaryImage}
+          alt={product.name}
+          effect=""
+          className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
+          placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -160,6 +160,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
             </div>
           </div>
         )}
+        </Link>
         
         {/* Image Loading Placeholder */}
         {!imageLoaded && !imageError && primaryImage && (
@@ -194,13 +195,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
             />
           </button>
           
-          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
-            <button
-              className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
-            >
-              <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
-            </button>
-          </Link>
+     
         </div>
 
         {/* Discount Badge */}
