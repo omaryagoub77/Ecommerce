@@ -14,8 +14,33 @@ import { db, auth } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 
 import SignUp from "../Auth/SignUp";
-// If you have a SignIn component, import it here:
 import SignIn from "../Auth/SignIn";
+
+// Leaflet imports
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix default marker icon issue in Leaflet
+const markerIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+function LocationPicker({ setAddress }) {
+  const [position, setPosition] = useState(null);
+
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      setAddress(`${e.latlng.lat}, ${e.latlng.lng}`);
+    },
+  });
+
+  return position ? <Marker position={position} icon={markerIcon} /> : null;
+}
 
 function LocationPreview({ address }) {
   if (!address) {
@@ -59,7 +84,7 @@ export default function CheckoutModal({
   const [user, setUser] = useState(null);
   const [showSignUp, setShowSignUp] = useState(false);
 
-  // ✅ Track auth state
+  // Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -141,7 +166,7 @@ export default function CheckoutModal({
         }
       }
 
-      // ✅ Build order object
+      // Build order object
       const newOrder = {
         id: Date.now().toString(), // unique ID for localStorage
         client: form,
@@ -156,7 +181,7 @@ export default function CheckoutModal({
       // Save to Firestore
       await addDoc(collection(db, "orders"), newOrder);
 
-      // ✅ Save also to localStorage
+      // Save also to localStorage
       const existingOrders = JSON.parse(localStorage.getItem("orders")) || [];
       localStorage.setItem("orders", JSON.stringify([...existingOrders, newOrder]));
 
@@ -228,14 +253,13 @@ export default function CheckoutModal({
 
           <div className="flex-1 overflow-y-auto p-6">
             {!user ? (
-              // 🔑 Show login/signup instead of form
+              // Show login/signup instead of form
               <div>
                 {showSignUp ? <SignUp /> : <SignIn />}
-                {/* Replace <SignUp /> with <SignIn /> if you have a login form */}
                 <p className="mt-4 text-center text-sm text-gray-600">
                   {showSignUp
                     ? "Already have an account?"
-                    : "Don’t have an account?"}{" "}
+                    : "Don't have an account?"}{" "}
                   <button
                     onClick={() => setShowSignUp(!showSignUp)}
                     className="text-red-600 hover:underline"
@@ -246,7 +270,7 @@ export default function CheckoutModal({
               </div>
             ) : (
               <>
-                {/* ✅ Order Summary + Form */}
+                {/* Order Summary + Form */}
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <ShoppingCart className="w-5 h-5 mr-2 text-red-600" />
@@ -278,16 +302,16 @@ export default function CheckoutModal({
                               {item.selectedSize && (
                                 <span>Size: {item.selectedSize}</span>
                               )}
-                                                       {item.selectedColor && (
-        <p className="text-sm text-gray-600 mt-1 flex items-center">
-          Color: 
-          <span
-            className="ml-2 w-5 h-5 rounded-full border"
-            style={{ backgroundColor: item.selectedColor }}
-            title={item.selectedColor}
-          />
-        </p>
-      )}
+                              {item.selectedColor && (
+                                <p className="text-sm text-gray-600 mt-1 flex items-center">
+                                  Color: 
+                                  <span
+                                    className="ml-2 w-5 h-5 rounded-full border"
+                                    style={{ backgroundColor: item.selectedColor }}
+                                    title={item.selectedColor}
+                                  />
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -375,19 +399,20 @@ export default function CheckoutModal({
                       Shipping Address
                     </label>
                     <div className="flex gap-2 mb-2">
-                      <textarea
+                      <input
+                        type="text"
                         name="address"
                         value={form.address}
                         onChange={handleChange}
-                        rows={2}
-                        className="flex-1 px-4 py-3 border rounded-lg resize-none"
-                        placeholder="Enter your shipping address or coords"
+                        className="flex-1 px-4 py-3 border rounded-lg"
+                        placeholder="Coordinates will appear here"
                         disabled={loading}
+                        readOnly
                       />
                       <button
                         type="button"
                         onClick={useMyLocation}
-                        className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm"
+                        className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm whitespace-nowrap"
                       >
                         Use My Location
                       </button>
@@ -399,15 +424,38 @@ export default function CheckoutModal({
                     )}
                   </div>
 
-                  {/* Map Preview */}
+                  {/* Map Picker */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                       <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                      Location Preview
+                      Select Location on Map
                     </label>
-                    <div className="w-full h-64 rounded-lg overflow-hidden border">
-                      <LocationPreview address={form.address} />
+                    <div className="text-xs text-gray-500 mb-2">
+                      Click on the map to select your location
                     </div>
+                    <div className="w-full h-64 rounded-lg overflow-hidden border">
+                      <MapContainer
+                        center={[-1.9577, 30.1127]} // Kigali default center
+                        zoom={13}
+                        style={{ height: "100%", width: "100%" }}
+                      >
+                       <TileLayer
+  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+  attribution="Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+/>
+
+                        <LocationPicker
+                          setAddress={(coords) =>
+                            setForm((prev) => ({ ...prev, address: coords }))
+                          }
+                        />
+                      </MapContainer>
+                    </div>
+                    {form.address && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Selected: {form.address}
+                      </p>
+                    )}
                   </div>
 
                   <button
