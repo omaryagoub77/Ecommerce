@@ -98,33 +98,33 @@ export default function CheckoutModal({
     );
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (!form.name.trim()) errors.name = "Name is required";
-    if (!form.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Please enter a valid email address";
-    }
-    if (!form.phone.trim()) {
-      errors.phone = "Phone number is required";
-    } else if (
-      !/^\+?[0-9\s\-()]{7,20}$/.test(form.phone.replace(/\s/g, ""))
-    ) {
-      errors.phone = "Please enter a valid phone number";
-    }
-    if (!form.address.trim()) errors.address = "Address is required";
+  // const validateForm = () => {
+  //   const errors = {};
+  //   if (!form.name.trim()) errors.name = "Name is required";
+  //   if (!form.email.trim()) {
+  //     errors.email = "Email is required";
+  //   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+  //     errors.email = "Please enter a valid email address";
+  //   }
+  //   if (!form.phone.trim()) {
+  //     errors.phone = "Phone number is required";
+  //   } else if (
+  //     !/^\+?[0-9\s\-()]{7,20}$/.test(form.phone.replace(/\s/g, ""))
+  //   ) {
+  //     errors.phone = "Please enter a valid phone number";
+  //   }
+  //   if (!form.address.trim()) errors.address = "Address is required";
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  //   setFormErrors(errors);
+  //   return Object.keys(errors).length === 0;
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      setMessage("Please correct the errors in the form.");
-      return;
-    }
+    // if (!validateForm()) {
+    //   setMessage("Please correct the errors in the form.");
+    //   return;
+    // }
     if (!cart || cart.length === 0) {
       setMessage("Your cart is empty.");
       return;
@@ -278,6 +278,16 @@ export default function CheckoutModal({
                               {item.selectedSize && (
                                 <span>Size: {item.selectedSize}</span>
                               )}
+                                                       {item.selectedColor && (
+        <p className="text-sm text-gray-600 mt-1 flex items-center">
+          Color: 
+          <span
+            className="ml-2 w-5 h-5 rounded-full border"
+            style={{ backgroundColor: item.selectedColor }}
+            title={item.selectedColor}
+          />
+        </p>
+      )}
                             </div>
                           </div>
                         </div>

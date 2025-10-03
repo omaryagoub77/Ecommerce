@@ -163,11 +163,14 @@ export default function CartSlideout({
                           e.target.src = "/placeholder.jpg";
                         }}
                       />
-                      {item.selectedSize && (
+                      {/* {item.selectedSize && (
                         <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                           {item.selectedSize}
+                        
                         </span>
-                      )}
+                      )} */}
+                           {/* ✅ Show color */}
+ 
                     </div>
                     
                     <div className="flex-1 min-w-0 ml-4">
@@ -179,6 +182,16 @@ export default function CartSlideout({
                           Size: <span className="font-medium">{item.selectedSize}</span>
                         </p>
                       )}
+                           {item.selectedColor && (
+        <p className="text-sm text-gray-600 mt-1 flex items-center">
+          Color: 
+          <span
+            className="ml-2 w-5 h-5 rounded-full border"
+            style={{ backgroundColor: item.selectedColor }}
+            title={item.selectedColor}
+          />
+        </p>
+      )}
                       <div className="flex items-center mt-2">
                         <span className="text-gray-900 font-medium">
                           ${parseFloat(item.price).toFixed(2)}

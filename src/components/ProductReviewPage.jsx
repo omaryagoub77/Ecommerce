@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { ShoppingCart, Heart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Heart, ArrowLeft, Plus, Minus } from "lucide-react";
 
 // Helper functions for localStorage
 const getFavoritesFromStorage = () => {
@@ -35,6 +35,8 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState("");
   const [imageError, setImageError] = useState(false);
   const [favoriteProductIds, setFavoriteProductIds] = useState([]);
@@ -58,6 +60,10 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
           const productData = { id: docSnap.id, ...docSnap.data() };
           setProduct(productData);
           setSelectedImage(productData.images?.[0] || null);
+          // Set default color if available
+          if (productData.colors && productData.colors.length > 0) {
+            setSelectedColor(productData.colors[0]);
+          }
         } else {
           setProduct(null);
         }
@@ -77,6 +83,7 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   }, [id]);
 
   const hasSizes = product?.sizes && product.sizes.length > 0;
+  const hasColors = product?.colors && product.colors.length > 0;
 
   const handleAddToCart = () => {
     if (hasSizes && !selectedSize) {
@@ -84,14 +91,20 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
       return;
     }
 
+    if (hasColors && !selectedColor) {
+      setMessage("⚠️ Please select a color before adding to cart.");
+      return;
+    }
+
     setMessage("✅ Added to cart!");
     onAddToCart({
       id: product.id,
       name: product.name,
-      price: product.newprice || product.price,
+      price: product.newPrice || product.price,
       image: product.images?.[0] || "",
       selectedSize,
-      quantity: 1,
+      selectedColor,
+      quantity,
     });
 
     setTimeout(() => setMessage(""), 3000);
@@ -124,6 +137,17 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
     setImageError(true);
   };
 
+  const handleQuantityChange = (newQuantity) => {
+    if (newQuantity < 1) return;
+    setQuantity(newQuantity);
+  };
+
+  // Calculate discount percentage
+  const calculateDiscount = () => {
+    if (!product.newPrice || product.newPrice >= product.price) return 0;
+    return Math.round(((product.price - product.newPrice) / product.price) * 100);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -151,43 +175,41 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white">
       {/* Back Button */}
       <div className="px-4 pt-4">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-red-600 hover:text-red-800 transition-colors"
+          className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 mr-1" /> Back
         </button>
       </div>
 
-      <div className="px-4 pb-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="px-4 pb-8 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8 py-6">
           {/* Left Side: Images */}
           <div className="lg:w-1/2">
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex  gap-6">
               {/* Main Image */}
-              <div className="flex-1">
-                <div className="aspect-square bg-white rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
-                  {selectedImage && !imageError ? (
-                    <img
-                      src={selectedImage}
-                      alt={product.name}
-                      className="w-full h-full object-contain"
-                      onError={handleImageError}
-                    />
-                  ) : (
-                    <div className="text-center p-8">
-                      <div className="text-5xl mb-2">🖼️</div>
-                      <p className="text-gray-500">Image not available</p>
-                    </div>
-                  )}
-                </div>
+              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                {selectedImage && !imageError ? (
+                  <img
+                    src={selectedImage}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                  />
+                ) : (
+                  <div className="text-center p-8">
+                    <div className="text-5xl mb-2">🖼️</div>
+                    <p className="text-gray-500">Image not available</p>
+                  </div>
+                )}
               </div>
 
               {/* Thumbnails */}
-              <div className="flex flex-row md:flex-col gap-3 overflow-x-auto md:overflow-y-auto max-w-full md:max-w-[100px] lg:max-w-[120px] py-2">
+              <div className="flex flex-col gap-3  py-2">
                 {product.images?.map((img, idx) => (
                   <button
                     key={idx}
@@ -195,10 +217,10 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
                       setSelectedImage(img);
                       setImageError(false);
                     }}
-                    className={`flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                       selectedImage === img
-                        ? "border-red-500 scale-105 shadow-md"
-                        : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                        ? "border-black"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <img
@@ -217,98 +239,134 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
 
           {/* Right Side: Info */}
           <div className="lg:w-1/2">
-            <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm">
-              <div className="flex flex-col h-full">
+            <div className="flex flex-col gap-6">
+              {/* Product Title */}
+              <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+
+              {/* Price Section */}
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl font-bold text-gray-900">
+                  ${product.newPrice || product.price}
+                </span>
+                {product.newPrice && product.newPrice < product.price && (
+                  <>
+                    <span className="text-lg text-gray-500 line-through">
+                      ${product.price}
+                    </span>
+                    <span className="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
+                      {calculateDiscount()}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
+
+      
+              {/* Color Selection */}
+              {hasColors && (
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                  <p className="text-gray-600 mb-6">{product.category}</p>
-
-                  {/* Size Selection */}
-                  {hasSizes && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Select Size</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {product.sizes.map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => setSelectedSize(size)}
-                            className={`px-4 py-2 rounded-lg border font-medium transition-all duration-200 ${
-                              selectedSize === size
-                                ? "bg-red-600 text-white border-red-600 shadow-md"
-                                : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                            }`}
-                          >
-                            {size.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
-                      {hasSizes && !selectedSize && (
-                        <p className="mt-2 text-sm text-red-500">Please select a size</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Price */}
-                  <div className="mb-6">
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-3xl font-bold text-gray-900">
-                        ${product.newPrice || product.price}
-                      </span>
-                      {product.newPrice && product.newPrice < product.price && (
-                        <span className="text-lg text-gray-500 line-through">
-                          ${product.price}
-                        </span>
-                      )}
-                      {product.newPrice && product.newPrice < product.price && (
-                        <span className="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
-                          Save ${(product.price - product.newPrice).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-4 mb-6">
-                    <button
-                      onClick={handleAddToCart}
-                      className="flex-1 min-w-[200px] flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      <ShoppingCart className="w-5 h-5" /> Add to Cart
-                    </button>
-
-                    <button
-                      onClick={handleFavorite}
-                      className={`p-3 rounded-xl border transition-all duration-300 ${
-                        isFavorited
-                          ? "bg-red-50 text-red-600 border-red-200 shadow-sm"
-                          : "bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100 hover:shadow-sm"
-                      }`}
-                      title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Heart
-                        className={`w-6 h-6 transition-all duration-300 ${
-                          isFavorited ? "fill-red-600 text-red-600 scale-110" : ""
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">Color</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.colors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`w-8 h-8 rounded-full border-2 transition-all duration-200 ${
+                          selectedColor === color
+                            ? "border-black scale-110"
+                            : "border-gray-300 hover:border-gray-400"
                         }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
                       />
-                    </button>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  {/* Friendly message */}
-                  {message && (
-                    <div className="mb-6 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 animate-fadeIn">
-                      {message}
-                    </div>
+              {/* Size Selection */}
+              {hasSizes && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">Size</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.sizes.map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 rounded-full border font-medium transition-all duration-200 ${
+                          selectedSize === size
+                            ? "bg-black text-white border-black"
+                            : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                  {hasSizes && !selectedSize && (
+                    <p className="mt-1 text-sm text-red-500">Please select a size</p>
                   )}
                 </div>
+              )}
 
-                {/* Description */}
-                <div className="mt-auto pt-6 border-t border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line break-words">
-                    {product.det || "No description available for this product."}
-                  </p>
+              {/* Quantity Selector */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-1">Quantity</h3>
+                <div className="flex items-center border border-gray-300 rounded-lg w-32">
+                  <button
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    className="p-2 text-gray-600 hover:bg-gray-100"
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="flex-1 text-center">{quantity}</span>
+                  <button
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    className="p-2 text-gray-600 hover:bg-gray-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 min-w-[200px] flex items-center justify-center gap-2 bg-black hover:bg-gray-900 text-white font-medium py-3 px-6 rounded-lg shadow-sm transition-all duration-300"
+                >
+                  <ShoppingCart className="w-5 h-5" /> Add to Cart
+                </button>
+
+                <button
+                  onClick={handleFavorite}
+                  className={`p-3 rounded-lg border transition-all duration-300 ${
+                    isFavorited
+                      ? "bg-red-50 text-red-600 border-red-200"
+                      : "bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Heart
+                    className={`w-6 h-6 transition-all duration-300 ${
+                      isFavorited ? "fill-red-600 text-red-600" : ""
+                    }`}
+                  />
+                </button>
+                
+              </div>
+        {/* Short Description */}
+        <h2>Product description</h2>
+              <p className="text-gray-700 break-words">
+                {product.shortDescription || product.det?.substring(0, 150) + "..." || "No description available."}
+              </p>
+
+              {/* Friendly message */}
+              {message && (
+                <div className="p-3 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                  {message}
+                </div>
+              )}
             </div>
           </div>
         </div>

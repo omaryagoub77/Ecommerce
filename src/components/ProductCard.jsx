@@ -10,7 +10,7 @@ export default function ProductCard({ product, onAddToCart }) {
       />
       <div className="p-4">
         <h3 className="font-semibold text-lg text-gray-900 mb-1">{product.name}</h3>
-        <p className="text-gray-600 text-sm mb-2">{product.det || product.description}</p>
+        <p className="text-gray-600 text-sm mb-2  ">{product.det || product.description}</p>
         <p className="text-gray-500 text-sm mb-3">
           <strong>Category:</strong> {product.category || "Unknown"}
         </p>

@@ -1,27 +1,26 @@
-import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef, Profiler } from "react"; 
+import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef } from "react";
 import { Link } from "react-router-dom";
 import { collection, getDocs, query, limit, startAfter, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
-// Direct imports for better tree-shaking
-import { ShoppingCart, WifiOff, Heart, Search, Expand, X, Grid, List } from 'lucide-react';
-
 // Dynamic imports for code splitting
 const HeroSlider = lazy(() => import('./HeroSlider'));
+const ShoppingCart = lazy(() => import('lucide-react').then(mod => ({ default: mod.ShoppingCart })));
+const WifiOff = lazy(() => import('lucide-react').then(mod => ({ default: mod.WifiOff })));
+const Heart = lazy(() => import('lucide-react').then(mod => ({ default: mod.Heart })));
+const Search = lazy(() => import('lucide-react').then(mod => ({ default: mod.Search })));
+const Expand = lazy(() => import('lucide-react').then(mod => ({ default: mod.Expand })));
+const X = lazy(() => import('lucide-react').then(mod => ({ default: mod.X })));
+const Grid = lazy(() => import('lucide-react').then(mod => ({ default: mod.Grid })));
+const List = lazy(() => import('lucide-react').then(mod => ({ default: mod.List })));
 
 // Image imports
+
 import womenImage from "../public/women.jpg";
 import manImage from "../public/man.jpg";
 import kidImage from "../public/kid.jpg";
-
-// Simple cache mechanism for Firestore queries
-const queryCache = new Map();
-
-// Web Worker for heavy computations
-const worker = new Worker('worker.js');
-
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -54,21 +53,17 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Custom debounce hook
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    
-    return () => {
-      clearTimeout(handler);
+// Debounce utility function (moved outside component to avoid recreation)
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
     };
-  }, [value, delay]);
-  
-  return debouncedValue;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 };
 
 // State reducer for better performance
@@ -76,7 +71,7 @@ const initialState = {
   products: [],
   loading: false,
   searchQuery: "",
-  favoriteState: [],
+  favoriteState: [], // Initialize as empty array
   lastVisible: null,
   hasMore: true,
   page: 1,
@@ -92,6 +87,7 @@ function reducer(state, action) {
     case 'SET_SEARCH_QUERY':
       return { ...state, searchQuery: action.payload };
     case 'SET_FAVORITE_STATE':
+      // Ensure favoriteState is always an array
       return { ...state, favoriteState: Array.isArray(action.payload) ? action.payload : [] };
     case 'SET_LAST_VISIBLE':
       return { ...state, lastVisible: action.payload };
@@ -124,43 +120,13 @@ const getFavoritesFromStorage = () => {
 
 const saveFavoritesToStorage = (favorites) => {
   try {
+    // Ensure we're saving an array
     const favoritesArray = Array.isArray(favorites) ? favorites : [];
     localStorage.setItem('favorites', JSON.stringify(favoritesArray));
   } catch (error) {
     console.error('Error saving favorites to localStorage:', error);
   }
 };
-
-// Progressive Image Component
-const ProgressiveImage = React.memo(({ src, alt, ...props }) => {
-  const [imgSrc, setImgSrc] = useState('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo=');
-  const [imgLoading, setImgLoading] = useState(true);
-  
-  useEffect(() => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      setImgSrc(src);
-      setImgLoading(false);
-    };
-  }, [src]);
-  
-  return (
-    <div className="relative overflow-hidden">
-      <img
-        src={imgSrc}
-        alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${imgLoading ? 'opacity-50 blur-sm' : 'opacity-100'}`}
-        {...props}
-      />
-      {imgLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
-          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-        </div>
-      )}
-    </div>
-  );
-});
 
 // Memoized Product Card Component
 const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
@@ -169,110 +135,122 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   
   const originalPrice = parseFloat(product.price);
   const discountedPrice = parseFloat(product.newPrice);
+
+  // Get the primary image URL (first image in the array)
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
-    <Profiler id="ProductCard" onRender={(id, phase, actualDuration) => {
-      console.log(`${id} ${phase} took ${actualDuration}ms`);
-    }}>
-      <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
-        {/* Image Container */}
-        <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
-          {primaryImage ? (
-            <ProgressiveImage
-              src={primaryImage}
-              alt={product.name}
-              className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-              <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-xs">No Image</span>
-              </div>
+    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
+      {/* Image Container */}
+      <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
+        {primaryImage ? (
+          <LazyLoadImage
+            src={primaryImage}
+            alt={product.name}
+            effect=""
+            className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-500 text-xs">No Image</span>
             </div>
-          )}
-          
-          {/* Image Error Fallback */}
-          {imageError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
-              <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-1" />
-              <p className="text-gray-500 text-xs">Image unavailable</p>
-            </div>
-          )}
-          
-          {/* Action Buttons */}
-          <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-            <button
-              onClick={() => onAddToFavorites(product.id)}
-              aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-              className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
-                isFav
-                  ? "bg-pink-100 text-pink-600"
-                  : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
-              }`}
-            >
-              <Heart
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
-                  isFav ? "fill-current" : ""
-                }`}
-              />
-            </button>
-            
-            <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
-              <button
-                className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
-              >
-                <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
-              </button>
-            </Link>
           </div>
-
-          {/* Discount Badge */}
-          {originalPrice > discountedPrice && (
-            <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
-              {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
-            </div>
-          )}
+        )}
+        
+        {/* Image Loading Placeholder */}
+        {!imageLoaded && !imageError && primaryImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
+            <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          </div>
+        )}
+        
+        {/* Image Error Fallback */}
+        {imageError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-1" />
+            <p className="text-gray-500 text-xs">Image unavailable</p>
+          </div>
+        )}
+        
+        {/* Action Buttons */}
+        <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
+          <button
+            onClick={() => onAddToFavorites(product.id)}
+            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+            className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
+              isFav
+                ? "bg-pink-100 text-pink-600"
+                : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
+            }`}
+          >
+            <Heart
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
+                isFav ? "fill-current" : ""
+              }`}
+            />
+          </button>
+          
+          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
+            <button
+              className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
+            >
+              <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
+            </button>
+          </Link>
         </div>
 
-        {/* Product Info */}
-        <div className="p-2 flex flex-col flex-grow">
-          <div className="flex justify-between items-start mb-1">
-            <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
-              {product.name}
-            </h3>
-            <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
-              {product.category}
+        {/* Discount Badge */}
+        {originalPrice > discountedPrice && (
+          <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
+            {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
+          </div>
+        )}
+      </div>
+
+      {/* Product Info */}
+      <div className="p-2 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
+            {product.name}
+          </h3>
+          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
+            {product.category}
+          </span>
+        </div>
+        
+        {/* <p className="text-gray-600 text-xs mb-2 line-clamp-2 flex-grow">
+          {product.det}
+        </p> */}
+        
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center space-x-1">
+            {originalPrice > discountedPrice && (
+              <span className="line-through text-xs text-gray-500">
+                ${originalPrice.toFixed(2)}
+              </span>
+            )}
+            <span className="text-sm sm:text-base font-bold text-red-700">
+              ${discountedPrice.toFixed(2)}
             </span>
           </div>
           
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center space-x-1">
-              {originalPrice > discountedPrice && (
-                <span className="line-through text-xs text-gray-500">
-                  ${originalPrice.toFixed(2)}
-                </span>
-              )}
-              <span className="text-sm sm:text-base font-bold text-red-700">
-                ${discountedPrice.toFixed(2)}
-              </span>
-            </div>
-            
-            <button
-              onClick={() => onAddToCart(product)}
-              className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
-              aria-label={`Add ${product.name} to cart`}
-            >
-              <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
-            </button>
-          </div>
+          <button
+            onClick={() => onAddToCart(product)}
+            className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            aria-label={`Add ${product.name} to cart`}
+          >
+            <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
+          </button>
         </div>
       </div>
-    </Profiler>
+    </div>
   );
 }, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
   return (
     prevProps.product.id === nextProps.product.id &&
     prevProps.isFav === nextProps.isFav
@@ -282,23 +260,31 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
 // Skeleton Loader Component
 const SkeletonLoader = () => (
   <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
+    {/* Image Container */}
     <div className="relative overflow-hidden bg-gray-200 aspect-[1/1]">
+      {/* Discount Badge Placeholder */}
       <div className="absolute top-2 left-2 bg-gray-300 rounded-full px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 w-12 h-4 max-[450px]:w-10 max-[450px]:h-3"></div>
+
+      {/* Action Buttons Placeholder */}
       <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
         <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
         <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
       </div>
     </div>
 
+    {/* Product Info */}
     <div className="p-2 flex flex-col flex-grow">
+      {/* Title & Category Badge */}
       <div className="flex justify-between items-start mb-1">
         <div className="h-4 bg-gray-300 rounded w-2/3"></div>
         <div className="h-4 bg-gray-300 rounded-full w-12"></div>
       </div>
       
+      {/* Description Lines */}
       <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
       <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
 
+      {/* Price & Cart Button */}
       <div className="flex items-center justify-between mt-auto">
         <div className="flex items-center space-x-1">
           <div className="h-3 bg-gray-300 rounded w-8"></div>
@@ -310,39 +296,12 @@ const SkeletonLoader = () => (
   </div>
 );
 
-// Category Skeleton Component
-const CategorySkeleton = () => (
-  <div className="max-w-7xl mx-auto px-4 py-4">
-    <div className="flex items-center justify-between mb-4">
-      <div className="h-6 bg-gray-300 rounded w-48"></div>
-      <div className="h-6 bg-gray-300 rounded-full w-16"></div>
-    </div>
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <SkeletonLoader key={i} />
-      ))}
-    </div>
-  </div>
-);
-
 // Search Bar Component
 const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) => {
+  // Debounced search handler
   const handleSearchChange = useCallback(
-    (value) => {
-      // Use requestIdleCallback for non-critical updates
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(() => setSearchQuery(value));
-      } else {
-        // Fallback for browsers that don't support requestIdleCallback
-        setTimeout(() => setSearchQuery(value), 0);
-      }
-    },
+    debounce((value) => setSearchQuery(value), 300),
     [setSearchQuery]
-  );
-
-  const debouncedHandleSearchChange = useCallback(
-    debounce(handleSearchChange, 300),
-    [handleSearchChange]
   );
 
   return (
@@ -356,7 +315,7 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
             type="text"
             placeholder="Search products..."
             defaultValue={searchQuery}
-            onChange={(e) => debouncedHandleSearchChange(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-9 py-3 border border-gray-300 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-300 text-sm"
             aria-label="Search products"
           />
@@ -440,54 +399,6 @@ const SectionHeader = React.memo(({ title, count }) => (
   </div>
 ));
 
-// Category Section Component
-const CategorySection = React.memo(({ category, products, onAddToCart, onAddToFavorites, safeFavoriteState, viewMode }) => {
-  return (
-    <div id={`${category}-section`} className="max-w-7xl mx-auto px-4 py-4">
-      <SectionHeader title={`${category.charAt(0).toUpperCase() + category.slice(1)}'s Collection`} count={products.length} />
-      <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-        viewMode === "grid" 
-          ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
-          : "grid-cols-1"
-      }`}>
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onAddToCart={onAddToCart}
-            onAddToFavorites={onAddToFavorites}
-            isFav={safeFavoriteState.includes(product.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-});
-
-// Debounce utility function
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-// Fetch with cache function
-const fetchWithCache = async (queryKey, queryFunction) => {
-  if (queryCache.has(queryKey)) {
-    return queryCache.get(queryKey);
-  }
-  
-  const result = await queryFunction();
-  queryCache.set(queryKey, result);
-  return result;
-};
-
 // Main Component
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -503,6 +414,8 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   } = state;
   
   const pageSize = 12;
+
+  // Create a ref to hold the latest favoriteState
   const favoriteStateRef = useRef(favoriteState);
   
   // Update the ref whenever favoriteState changes
@@ -514,65 +427,53 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   useEffect(() => {
     const savedFavorites = getFavoritesFromStorage();
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
-    
-    // Cleanup function
-    return () => {
-      // Cancel any pending requests
-      // Clear any timers
-      // Reset any state that might cause memory leaks
-    };
   }, []);
 
-  // Optimized fetch function with caching
+  // Optimized fetch function with server-side filtering
   const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
-    const cacheKey = `${pageNum}-${search}`;
+    if (pageNum === 1) {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'RESET_PAGINATION' });
+    }
     
-    return fetchWithCache(cacheKey, async () => {
-      if (pageNum === 1) {
-        dispatch({ type: 'SET_LOADING', payload: true });
-        dispatch({ type: 'RESET_PAGINATION' });
+    try {
+      let q = collection(db, "products");
+      
+      // Add search filter if provided
+      if (search.trim() !== "") {
+        q = query(q, 
+          where("name", ">=", search),
+          where("name", "<=", search + "\uf8ff")
+        );
       }
       
-      try {
-        let q = collection(db, "products");
-        
-        if (search.trim() !== "") {
-          q = query(q, 
-            where("name", ">=", search),
-            where("name", "<=", search + "\uf8ff")
-          );
-        }
-        
-        if (pageNum > 1 && lastVisible) {
-          q = query(q, startAfter(lastVisible), limit(pageSize));
-        } else {
-          q = query(q, limit(pageSize));
-        }
-        
-        const querySnapshot = await getDocs(q);
-        const productList = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        
-        if (pageNum === 1) {
-          dispatch({ type: 'SET_PRODUCTS', payload: productList });
-        } else {
-          dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...productList] });
-        }
-        
-        dispatch({ type: 'SET_LAST_VISIBLE', payload: querySnapshot.docs[querySnapshot.docs.length - 1] });
-        dispatch({ type: 'SET_HAS_MORE', payload: querySnapshot.docs.length === pageSize });
-        dispatch({ type: 'SET_PAGE', payload: pageNum });
-        
-        return productList;
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        return [];
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+      // Add pagination
+      if (pageNum > 1 && lastVisible) {
+        q = query(q, startAfter(lastVisible), limit(pageSize));
+      } else {
+        q = query(q, limit(pageSize));
       }
-    });
+      
+      const querySnapshot = await getDocs(q);
+      const productList = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      
+      if (pageNum === 1) {
+        dispatch({ type: 'SET_PRODUCTS', payload: productList });
+      } else {
+        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...productList] });
+      }
+      
+      dispatch({ type: 'SET_LAST_VISIBLE', payload: querySnapshot.docs[querySnapshot.docs.length - 1] });
+      dispatch({ type: 'SET_HAS_MORE', payload: querySnapshot.docs.length === pageSize });
+      dispatch({ type: 'SET_PAGE', payload: pageNum });
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
   }, [searchQuery, lastVisible, products, pageSize]);
 
   // Initial fetch
@@ -580,15 +481,12 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     fetchProducts();
   }, []);
 
-  // Use debounce hook for search
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  
   // Handle search query changes
   useEffect(() => {
-    if (debouncedSearchQuery !== state.searchQuery) {
-      fetchProducts(1, debouncedSearchQuery);
+    if (searchQuery !== state.searchQuery) {
+      fetchProducts(1, searchQuery);
     }
-  }, [debouncedSearchQuery]);
+  }, [searchQuery]);
 
   // Load more products
   const loadMore = useCallback(() => {
@@ -597,7 +495,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     }
   }, [loading, hasMore, page, fetchProducts]);
 
-  // Optimistic favorite toggle
+  // Create a stable favorite toggle function
   const handleFavoriteClick = useCallback((productId) => {
     // Get the latest favoriteState from the ref
     const currentFavorites = Array.isArray(favoriteStateRef.current) 
@@ -609,24 +507,28 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     // Check if product is already in favorites
     const isFavorite = currentFavorites.includes(productId);
     
-    // Optimistically update UI
-    const updatedFavorites = isFavorite 
-      ? currentFavorites.filter(id => id !== productId)
-      : [...currentFavorites, productId];
+    let updatedFavorites;
+    if (isFavorite) {
+      // Remove from favorites
+      updatedFavorites = currentFavorites.filter(id => id !== productId);
+    } else {
+      // Add to favorites
+      updatedFavorites = [...currentFavorites, productId];
+    }
     
-    // Update state immediately for responsive UI
-    dispatch({ type: 'SET_FAVORITE_STATE', payload: updatedFavorites });
-    
-    // Then update localStorage
+    // Save to localStorage
     saveFavoritesToStorage(updatedFavorites);
+    
+    // Update state
+    dispatch({ type: 'SET_FAVORITE_STATE', payload: updatedFavorites });
 
     if (onAddToFavorites) {
       const product = products.find((p) => p.id === productId);
       if (product) onAddToFavorites(product);
     }
-  }, [onAddToFavorites, products]);
+  }, [onAddToFavorites, products]); // Removed favoriteState from dependencies
 
-  // Ensure favoriteState is always an array
+  // Ensure favoriteState is always an array before using it
   const safeFavoriteState = Array.isArray(favoriteState) 
     ? favoriteState 
     : (typeof favoriteState === 'object' && favoriteState !== null) 
@@ -688,18 +590,14 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         </Suspense>
 
         {/* Categories */}
-        <Suspense fallback={<div className="h-40 bg-gray-200 animate-pulse" />}>
-          <CategoryNav />
-        </Suspense>
+        <CategoryNav />
 
         {/* Search Bar */}
-        <Suspense fallback={<div className="h-20 bg-gray-200 animate-pulse" />}>
-          <SearchBar 
-            searchQuery={searchQuery} 
-            setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
-            filteredCount={products.length}
-          />
-        </Suspense>
+        <SearchBar 
+          searchQuery={searchQuery} 
+          setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
+          filteredCount={products.length}
+        />
 
         {/* View Mode Toggle */}
         <div className="max-w-7xl mx-auto px-4 mb-4 hidden sm:flex justify-end">
@@ -729,50 +627,71 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
           </div>
         </div>
 
-        {/* Product Sections */}
-        {loading && products.length === 0 ? (
-          <>
-            <CategorySkeleton />
-            <CategorySkeleton />
-            <CategorySkeleton />
-          </>
-        ) : (
-          <>
-            {men.length > 0 && (
-              <CategorySection 
-                category="men" 
-                products={men} 
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                safeFavoriteState={safeFavoriteState}
-                viewMode={viewMode}
-              />
-            )}
-
-            {women.length > 0 && (
-              <CategorySection 
-                category="women" 
-                products={women} 
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                safeFavoriteState={safeFavoriteState}
-                viewMode={viewMode}
-              />
-            )}
-
-            {kids.length > 0 && (
-              <CategorySection 
-                category="kids" 
-                products={kids} 
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                safeFavoriteState={safeFavoriteState}
-                viewMode={viewMode}
-              />
-            )}
-          </>
+        {/* Men Section */}
+        {men.length > 0 && (
+          <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
+            <SectionHeader title="Men's Collection" count={men.length} />
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                : "grid-cols-1"
+            }`}>
+              {men.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onAddToFavorites={handleFavoriteClick}
+                  isFav={safeFavoriteState.includes(product.id)}
+                />
+              ))}
+            </div>
+          </div>
         )}
-        
+
+        {/* Women Section */}
+        {women.length > 0 && (
+          <div id="women-section" className="max-w-7xl mx-auto px-4 py-4">
+            <SectionHeader title="Women's Collection" count={women.length} />
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                : "grid-cols-1"
+            }`}>
+              {women.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onAddToFavorites={handleFavoriteClick}
+                  isFav={safeFavoriteState.includes(product.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Kids Section */}
+        {kids.length > 0 && (
+          <div id="kids-section" className="max-w-7xl mx-auto px-4 py-4">
+            <SectionHeader title="Kids' Collection" count={kids.length} />
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                : "grid-cols-1"
+            }`}>
+              {kids.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onAddToFavorites={handleFavoriteClick}
+                  isFav={safeFavoriteState.includes(product.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         {/* Load More Button */}
         {hasMore && (
           <div className="flex justify-center my-8">
@@ -799,6 +718,5 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     </ErrorBoundary>
   );
 };
-
 
 export default React.memo(EnhancedProducts);
