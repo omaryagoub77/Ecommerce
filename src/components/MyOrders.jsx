@@ -60,6 +60,17 @@ const handleSendMessage = async (orderId) => {
   }
 };
 
+const formatDate = (timestamp) => {
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "short",
+  });
+};
+
+
 // Add this function to handle message input changes
 const handleMessageChange = (orderId, value) => {
   setOrderMessages(prev => ({
@@ -326,15 +337,7 @@ const handleMessageChange = (orderId, value) => {
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    let d;
-    // Firestore Timestamp object has `seconds`
-    if (timestamp?.seconds) d = new Date(timestamp.seconds * 1000);
-    else if (typeof timestamp === 'string') d = new Date(timestamp);
-    else d = new Date(timestamp);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  };
+
 
   // Clear messages after 3 seconds
   useEffect(() => {
