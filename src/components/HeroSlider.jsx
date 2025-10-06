@@ -14,7 +14,7 @@ const Slide = memo(({ slide, isActive, isEager, scrollToMenSection }) => {
         alt={slide.title || "Slide"}
         className="slide-image"
         loading={isEager ? "eager" : "lazy"}
-        fetchpriority={isEager ? "high" : "auto"}
+        
       />
       <div className="slide-overlay">
         <div className="slide-content">
