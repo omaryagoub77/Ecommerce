@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef } from "react";
 import { Link } from "react-router-dom";
-import { collection, getDocs, query, limit, startAfter, where } from "firebase/firestore";
-import { db } from "../firebaseConfig";
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
+import firebaseService from '../utils/firebaseService';
+import { optimizeImageUrl, imagePreloader } from '../utils/imageUtils';
+import performanceMonitor from '../utils/performanceMonitor';
 
 // Dynamic imports for code splitting
 const HeroSlider = lazy(() => import('./HeroSlider'));
@@ -145,13 +146,14 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
       <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
         {primaryImage ? (
           <LazyLoadImage
-          src={primaryImage}
+          src={optimizeImageUrl(primaryImage, 80)}
           alt={product.name}
-          effect=""
+          effect="blur"
           className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
-          placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+          placeholderSrc={optimizeImageUrl(primaryImage, 20)}
+          threshold={200}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -436,7 +438,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
   }, []);
 
-  // Optimized fetch function with server-side filtering
+  // Optimized fetch function with caching
   const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
     if (pageNum === 1) {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -444,38 +446,46 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     }
     
     try {
-      let q = collection(db, "products");
+      const filters = {
+        searchQuery: search.trim(),
+        pageSize,
+        lastVisible: pageNum > 1 ? lastVisible : null
+      };
       
-      // Add search filter if provided
-      if (search.trim() !== "") {
-        q = query(q, 
-          where("name", ">=", search),
-          where("name", "<=", search + "\uf8ff")
-        );
-      }
-      
-      // Add pagination
-      if (pageNum > 1 && lastVisible) {
-        q = query(q, startAfter(lastVisible), limit(pageSize));
-      } else {
-        q = query(q, limit(pageSize));
-      }
-      
-      const querySnapshot = await getDocs(q);
-      const productList = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const result = await performanceMonitor.measureFunction(
+        'fetchProducts',
+        () => firebaseService.fetchProducts(filters)
+      )();
       
       if (pageNum === 1) {
-        dispatch({ type: 'SET_PRODUCTS', payload: productList });
+        dispatch({ type: 'SET_PRODUCTS', payload: result.products });
       } else {
-        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...productList] });
+        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...result.products] });
       }
       
-      dispatch({ type: 'SET_LAST_VISIBLE', payload: querySnapshot.docs[querySnapshot.docs.length - 1] });
-      dispatch({ type: 'SET_HAS_MORE', payload: querySnapshot.docs.length === pageSize });
+      dispatch({ type: 'SET_LAST_VISIBLE', payload: result.lastVisible });
+      dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
       dispatch({ type: 'SET_PAGE', payload: pageNum });
+      
+      // Preload images for better performance
+      if (result.products.length > 0) {
+        const imageUrls = result.products
+          .slice(0, 6) // Only preload first 6 images
+          .map(p => p.images && p.images[0])
+          .filter(Boolean)
+          .map(url => optimizeImageUrl(url, 60)); // Lower quality for preload
+        
+        imagePreloader.preloadWithPriority(imageUrls, 3);
+      }
+      
+      // Preload next page if we have more
+      if (result.hasMore && pageNum === 1) {
+        firebaseService.preloadNextPage({
+          ...filters,
+          lastVisible: result.lastVisible
+        });
+      }
+      
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
