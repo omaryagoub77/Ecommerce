@@ -6,7 +6,7 @@ import firebaseService from '../utils/firebaseService';
 import { optimizeImageUrl, imagePreloader } from '../utils/imageUtils';
 import performanceMonitor from '../utils/performanceMonitor';
 
-// Dynamic imports for code splitting
+// Dynamic imports for code splitting - only import what we need
 const HeroSlider = lazy(() => import('./HeroSlider'));
 const ShoppingCart = lazy(() => import('lucide-react').then(mod => ({ default: mod.ShoppingCart })));
 const WifiOff = lazy(() => import('lucide-react').then(mod => ({ default: mod.WifiOff })));
@@ -146,14 +146,17 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
       <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
         {primaryImage ? (
           <LazyLoadImage
-          src={optimizeImageUrl(primaryImage, 80)}
+          src={optimizeImageUrl(primaryImage, 75)}
           alt={product.name}
           effect="blur"
-          className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          width={400}
+          height={400}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
-          placeholderSrc={optimizeImageUrl(primaryImage, 20)}
-          threshold={200}
+          placeholderSrc={optimizeImageUrl(primaryImage, 10)}
+          threshold={100}
+          loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -384,7 +387,10 @@ const CategoryNav = React.memo(() => {
                 src={cat.img}
                 alt={`${cat.name} category`}
                 effect="blur"
+                width={96}
+                height={96}
                 className="w-full h-full object-cover"
+                loading="eager"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
@@ -438,7 +444,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
   }, []);
 
-  // Optimized fetch function with caching
+  // Optimized fetch function with caching - reduce main thread blocking
   const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
     if (pageNum === 1) {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -448,15 +454,25 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     try {
       const filters = {
         searchQuery: search.trim(),
-        pageSize,
+        pageSize: 8, // Reduced from 12 to load faster
         lastVisible: pageNum > 1 ? lastVisible : null
       };
       
-      const result = await performanceMonitor.measureFunction(
-        'fetchProducts',
-        () => firebaseService.fetchProducts(filters)
-      )();
+      // Use requestIdleCallback to avoid blocking main thread
+      const result = await new Promise((resolve) => {
+        const executeQuery = async () => {
+          const queryResult = await firebaseService.fetchProducts(filters);
+          resolve(queryResult);
+        };
+        
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(executeQuery, { timeout: 1000 });
+        } else {
+          setTimeout(executeQuery, 0);
+        }
+      });
       
+      // Batch state updates to prevent multiple re-renders
       if (pageNum === 1) {
         dispatch({ type: 'SET_PRODUCTS', payload: result.products });
       } else {
@@ -467,23 +483,20 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
       dispatch({ type: 'SET_PAGE', payload: pageNum });
       
-      // Preload images for better performance
+      // Preload only essential images (first 4)
       if (result.products.length > 0) {
         const imageUrls = result.products
-          .slice(0, 6) // Only preload first 6 images
+          .slice(0, 4) // Reduced from 6 to 4
           .map(p => p.images && p.images[0])
           .filter(Boolean)
-          .map(url => optimizeImageUrl(url, 60)); // Lower quality for preload
+          .map(url => optimizeImageUrl(url, 40)); // Lower quality for preload
         
-        imagePreloader.preloadWithPriority(imageUrls, 3);
-      }
-      
-      // Preload next page if we have more
-      if (result.hasMore && pageNum === 1) {
-        firebaseService.preloadNextPage({
-          ...filters,
-          lastVisible: result.lastVisible
-        });
+        // Use requestIdleCallback for image preloading
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            imagePreloader.preloadWithPriority(imageUrls, 2);
+          });
+        }
       }
       
     } catch (error) {
@@ -491,7 +504,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [searchQuery, lastVisible, products, pageSize]);
+  }, [searchQuery, lastVisible, products]);
 
   // Initial fetch
   useEffect(() => {
