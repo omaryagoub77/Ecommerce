@@ -677,7 +677,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {men.length > 0 && (
           <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
             <SectionHeader title="Men's Collection" count={men.length} />
-<div className="p-6 grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">              {men.map((product) => (
+<div className="p-6 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">              {men.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
