@@ -596,7 +596,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="p-6 grid grid-cols-2 gap-4 bg-gray-50">
+          <div className="p-6 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -677,13 +677,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {men.length > 0 && (
           <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
             <SectionHeader title="Men's Collection" count={men.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 
-           
-            sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
-            
-            }
-            `}>
-              {men.map((product) => (
+<div className="p-6 grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">              {men.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -700,11 +694,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {women.length > 0 && (
           <div id="women-section" className="max-w-7xl mx-auto px-4 py-4">
             <SectionHeader title="Women's Collection" count={women.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-1"
-            }`}>
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
               {women.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -722,11 +712,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {kids.length > 0 && (
           <div id="kids-section" className="max-w-7xl mx-auto px-4 py-4">
             <SectionHeader title="Kids' Collection" count={kids.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-1"
-            }`}>
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
               {kids.map((product) => (
                 <ProductCard
                   key={product.id}

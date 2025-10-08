@@ -2,7 +2,7 @@
   "name": "y",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://github.com/o929/Ecommerce/",
+  "homepage": "./",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d dist",
+    "deploy:ci": "npm run build:prod && gh-pages -d dist",
     "analyze": "npx vite-bundle-analyzer dist"
   },
   "dependencies": {
