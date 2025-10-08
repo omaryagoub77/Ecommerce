@@ -1,5 +1,6 @@
 import { collection, getDocs, query, limit, startAfter, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+// import { getDocs, query, where, orderBy, limit, startAfter } from 'firebase/firestore';
 import cache from './cache';
 
 // Firebase service with caching

@@ -32,6 +32,7 @@ const Grid = lazy(() =>
 const List = lazy(() => 
   import('lucide-react').then(mod => ({ default: mod.List }))
 );
+
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -86,7 +87,11 @@ const initialState = {
   lastVisible: null,
   hasMore: true,
   page: 1,
-  viewMode: "grid"
+  viewMode: "grid",
+  // Add section show more states
+  showAllMen: false,
+  showAllWomen: false,
+  showAllKids: false
 };
 
 function reducer(state, action) {
@@ -110,6 +115,14 @@ function reducer(state, action) {
       return { ...state, viewMode: action.payload };
     case 'RESET_PAGINATION':
       return { ...state, page: 1, lastVisible: null, hasMore: true, products: [] };
+    case 'TOGGLE_SHOW_ALL_MEN':
+      return { ...state, showAllMen: !state.showAllMen };
+    case 'TOGGLE_SHOW_ALL_WOMEN':
+      return { ...state, showAllWomen: !state.showAllWomen };
+    case 'TOGGLE_SHOW_ALL_KIDS':
+      return { ...state, showAllKids: !state.showAllKids };
+    case 'RESET_SHOW_ALL':
+      return { ...state, showAllMen: false, showAllWomen: false, showAllKids: false };
     default:
       return state;
   }
@@ -154,28 +167,24 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
-      <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
-        {primaryImage ? (
-          <LazyLoadImage
-          src={optimizeImageUrl(primaryImage, 75)}
-          alt={product.name}
-          effect="blur"
-          // width={400}
-          // height={400}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageError(true)}
-          placeholderSrc={optimizeImageUrl(primaryImage, 10)}
-          threshold={100}
-          loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-500 text-xs">No Image</span>
+        <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
+          {primaryImage ? (
+            <LazyLoadImage
+            src={optimizeImageUrl(primaryImage, 75)}
+            alt={product.name}
+            effect=""
+            className={`w-full h-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+            placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-gray-500 text-xs">No Image</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </Link>
         
         {/* Image Loading Placeholder */}
@@ -210,11 +219,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
               }`}
             />
           </button>
-          
-     
         </div>
-
-   
       </div>
 
       {/* Product Info */}
@@ -223,12 +228,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
             {product.name}
           </h3>
- 
         </div>
-        
-        {/* <p className="text-gray-600 text-xs mb-2 line-clamp-2 flex-grow">
-          {product.det}
-        </p> */}
         
         <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center space-x-1">
@@ -240,25 +240,24 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
             <span className="text-sm sm:text-base font-bold text-red-700">
               ${discountedPrice.toFixed(2)}
             </span>
-                         {/* Discount Badge */}
-     {originalPrice > discountedPrice && (
-  <div
-    className="
-      line-through
-      bg-pink-100 text-pink-600 
-      px-2 py-1 
-      rounded-full 
-      text-xs font-bold 
+            {/* Discount Badge */}
+            {originalPrice > discountedPrice && (
+              <div
+                className="
+                  line-through
+                  bg-pink-100 text-pink-600 
+                  px-2 py-1 
+                  rounded-full 
+                  text-xs font-bold 
 
-      sm:px-1.5 sm:py-0.5 sm:text-[11px] 
-      max-[500px]:px-1 max-[500px]:py-0.5 max-[500px]:text-[10px] 
-      max-[400px]:px-0.5 max-[400px]:py-0.5 max-[400px]:text-[9px]
-    "
-  >
-    {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}%
-  </div>
-)}
-
+                  sm:px-1.5 sm:py-0.5 sm:text-[11px] 
+                  max-[500px]:px-1 max-[500px]:py-0.5 max-[500px]:text-[10px] 
+                  max-[400px]:px-0.5 max-[400px]:py-0.5 max-[400px]:text-[9px]
+                "
+              >
+                {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}%
+              </div>
+            )}
           </div>
           
           <button
@@ -441,7 +440,10 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     lastVisible,
     hasMore,
     page,
-    viewMode
+    viewMode,
+    showAllMen,
+    showAllWomen,
+    showAllKids
   } = state;
   
   const pageSize = 12;
@@ -469,8 +471,8 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     
     try {
       const filters = {
-        searchQuery: search.trim(),
-        pageSize: 8, // Reduced from 12 to load faster
+        // Don't pass searchQuery to Firebase - we'll filter client-side for better results
+        pageSize: 12, // Increased from 8 to get more data for client-side filtering
         lastVisible: pageNum > 1 ? lastVisible : null
       };
       
@@ -520,7 +522,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [searchQuery, lastVisible, products]);
+  }, [lastVisible, products]);
 
   // Initial fetch
   useEffect(() => {
@@ -529,9 +531,11 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
 
   // Handle search query changes
   useEffect(() => {
-    if (searchQuery !== state.searchQuery) {
-      fetchProducts(1, searchQuery);
+    // Reset show all states when starting a new search
+    if (searchQuery.trim() !== "") {
+      dispatch({ type: 'RESET_SHOW_ALL' });
     }
+    // Don't refetch on search - we'll filter client-side for better UX
   }, [searchQuery]);
 
   // Load more products
@@ -581,10 +585,30 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       ? Object.values(favoriteState) 
       : [];
 
-  // Group products
-  const men = products.filter((p) => p.category === "men");
-  const women = products.filter((p) => p.category === "women");
-  const kids = products.filter((p) => p.category === "kids");
+  // Group products and apply search filter
+  const allMen = products.filter((p) => p.category === "men");
+  const allWomen = products.filter((p) => p.category === "women");
+  const allKids = products.filter((p) => p.category === "kids");
+
+  // Apply client-side search filter for better results
+  const filteredMen = searchQuery.trim() !== "" 
+    ? allMen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allMen;
+  const filteredWomen = searchQuery.trim() !== "" 
+    ? allWomen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allWomen;
+  const filteredKids = searchQuery.trim() !== "" 
+    ? allKids.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allKids;
+
+  // Show limited products (3 initially) or all based on state
+  // When searching, show all results, otherwise limit to 3
+  const men = searchQuery.trim() !== "" ? filteredMen : (showAllMen ? filteredMen : filteredMen.slice(0, 3));
+  const women = searchQuery.trim() !== "" ? filteredWomen : (showAllWomen ? filteredWomen : filteredWomen.slice(0, 3));
+  const kids = searchQuery.trim() !== "" ? filteredKids : (showAllKids ? filteredKids : filteredKids.slice(0, 3));
+
+  // Calculate total filtered results for search display
+  const totalFilteredResults = filteredMen.length + filteredWomen.length + filteredKids.length;
 
   // Loading state
   if (loading && products.length === 0) {
@@ -642,7 +666,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         <SearchBar 
           searchQuery={searchQuery} 
           setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
-          filteredCount={products.length}
+          filteredCount={totalFilteredResults}
         />
 
         {/* View Mode Toggle */}
@@ -674,10 +698,15 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         </div>
 
         {/* Men Section */}
-        {men.length > 0 && (
+        {filteredMen.length > 0 && (
           <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Men's Collection" count={men.length} />
-<div className="p-6 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">              {men.map((product) => (
+            <SectionHeader title="Men's Collection" count={filteredMen.length} />
+            <div className={`grid  gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
+                : "grid-cols-2 " 
+            }`}>
+              {men.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
@@ -687,14 +716,29 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                 />
               ))}
             </div>
+            {/* Show More Button for Men */}
+            {filteredMen.length > 3 && searchQuery.trim() === "" && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_MEN' })}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
+                >
+                  {showAllMen ? `Show Less` : `Show More (${filteredMen.length - 3} more)`}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Women Section */}
-        {women.length > 0 && (
+        {filteredWomen.length > 0 && (
           <div id="women-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Women's Collection" count={women.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
+            <SectionHeader title="Women's Collection" count={filteredWomen.length} />
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
+                : "grid-cols-2"
+            }`}>
               {women.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -705,14 +749,29 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                 />
               ))}
             </div>
+            {/* Show More Button for Women */}
+            {filteredWomen.length > 3 && searchQuery.trim() === "" && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_WOMEN' })}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
+                >
+                  {showAllWomen ? `Show Less` : `Show More (${filteredWomen.length - 3} more)`}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Kids Section */}
-        {kids.length > 0 && (
+        {filteredKids.length > 0 && (
           <div id="kids-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Kids' Collection" count={kids.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
+            <SectionHeader title="Kids' Collection" count={filteredKids.length} />
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
+              viewMode === "grid" 
+                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
+                : "grid-cols-2"
+            }`}>
               {kids.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -723,6 +782,17 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
                 />
               ))}
             </div>
+            {/* Show More Button for Kids */}
+            {filteredKids.length > 3 && searchQuery.trim() === "" && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_KIDS' })}
+                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
+                >
+                  {showAllKids ? `Show Less` : `Show More (${filteredKids.length - 3} more)`}
+                </button>
+              </div>
+            )}
           </div>
         )}
         {/* Load More Button */}
