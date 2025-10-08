@@ -17,7 +17,7 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
-  base: "/Ecommerce",
+  base: "./",
   build: {
     rollupOptions: {
       output: {
