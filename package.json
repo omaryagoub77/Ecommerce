@@ -6,11 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:analyze": "vite build --mode analyze",
+    "build": "NODE_ENV=production vite build",
+    "build:prod": "cross-env NODE_ENV=production vite build --mode production",
+    "build:analyze": "NODE_ENV=production vite build --mode analyze",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d dist",
     "analyze": "npx vite-bundle-analyzer dist"
   },
@@ -37,6 +38,7 @@
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
+    "cross-env": "^7.0.3",
     "eslint": "^9.35.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

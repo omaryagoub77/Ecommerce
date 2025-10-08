@@ -187,12 +187,12 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
       </div>
 
       <div className="px-4 pb-8 max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-8 py-6">
+        <div className="flex flex-col md:flex-row gap-6 py-4">
           {/* Left Side: Images */}
-          <div className="lg:w-1/2">
-            <div className="flex  gap-6">
+          <div className="w-full md:flex-1 lg:w-1/2">
+            <div className="flex gap-4">
               {/* Main Image */}
-              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+              <div className="w-[80%] h-90 md:w-full md:h-96 lg:w-96 lg:h-96 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                 {selectedImage && !imageError ? (
                   <img
                     src={selectedImage}
@@ -209,15 +209,15 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
               </div>
 
               {/* Thumbnails */}
-              <div className="flex flex-col gap-3  py-2">
-                {product.images?.map((img, idx) => (
+              <div className="flex flex-col gap-2 py-2">
+                {product.images?.slice(0, 4).map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
                       setSelectedImage(img);
                       setImageError(false);
                     }}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                       selectedImage === img
                         ? "border-black"
                         : "border-gray-200 hover:border-gray-300"
@@ -238,19 +238,19 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
           </div>
 
           {/* Right Side: Info */}
-          <div className="lg:w-1/2">
-            <div className="flex flex-col gap-6">
+          <div className="w-full md:w-80 md:flex-shrink-0 lg:w-1/2">
+            <div className="flex flex-col gap-4">
               {/* Product Title */}
-              <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{product.name}</h1>
 
               {/* Price Section */}
               <div className="flex items-baseline gap-3">
-                <span className="text-2xl font-bold text-gray-900">
+                <span className="text-xl md:text-2xl font-bold text-gray-900">
                   ${product.newPrice || product.price}
                 </span>
                 {product.newPrice && product.newPrice < product.price && (
                   <>
-                    <span className="text-lg text-gray-500 line-through">
+                    <span className="text-base md:text-lg text-gray-500 line-through">
                       ${product.price}
                     </span>
                     <span className="px-2 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
@@ -260,11 +260,10 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
                 )}
               </div>
 
-      
               {/* Color Selection */}
               {hasColors && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Color</h3>
+                  <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">Color</h3>
                   <div className="flex flex-wrap gap-2">
                     {product.colors.map((color) => (
                       <button
@@ -286,13 +285,13 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
               {/* Size Selection */}
               {hasSizes && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Size</h3>
+                  <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">Size</h3>
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map((size) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`px-4 py-2 rounded-full border font-medium transition-all duration-200 ${
+                        className={`px-3 py-2 rounded-full border font-medium transition-all duration-200 text-sm ${
                           selectedSize === size
                             ? "bg-black text-white border-black"
                             : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"
@@ -310,8 +309,8 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
 
               {/* Quantity Selector */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Quantity</h3>
-                <div className="flex items-center border border-gray-300 rounded-lg w-32">
+                <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">Quantity</h3>
+                <div className="flex items-center border border-gray-300 rounded-lg w-28">
                   <button
                     onClick={() => handleQuantityChange(quantity - 1)}
                     className="p-2 text-gray-600 hover:bg-gray-100"
@@ -319,7 +318,7 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="flex-1 text-center">{quantity}</span>
+                  <span className="flex-1 text-center text-sm">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(quantity + 1)}
                     className="p-2 text-gray-600 hover:bg-gray-100"
@@ -330,17 +329,17 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 min-w-[200px] flex items-center justify-center gap-2 bg-black hover:bg-gray-900 text-white font-medium py-3 px-6 rounded-lg shadow-sm transition-all duration-300"
+                  className="flex-1 min-w-[180px] flex items-center justify-center gap-2 bg-black hover:bg-gray-900 text-white font-medium py-2.5 px-5 rounded-lg shadow-sm transition-all duration-300 text-sm"
                 >
-                  <ShoppingCart className="w-5 h-5" /> Add to Cart
+                  <ShoppingCart className="w-4 h-4" /> Add to Cart
                 </button>
 
                 <button
                   onClick={handleFavorite}
-                  className={`p-3 rounded-lg border transition-all duration-300 ${
+                  className={`p-2.5 rounded-lg border transition-all duration-300 ${
                     isFavorited
                       ? "bg-red-50 text-red-600 border-red-200"
                       : "bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100"
@@ -348,22 +347,24 @@ const ProductReviewPage = ({ onAddToCart, onAddToFavorites, favorites = [] }) =>
                   title={isFavorited ? "Remove from favorites" : "Add to favorites"}
                 >
                   <Heart
-                    className={`w-6 h-6 transition-all duration-300 ${
+                    className={`w-5 h-5 transition-all duration-300 ${
                       isFavorited ? "fill-red-600 text-red-600" : ""
                     }`}
                   />
                 </button>
-                
               </div>
-        {/* Short Description */}
-        <h2>Product description</h2>
-              <p className="text-gray-700 break-words">
-                {product.shortDescription || product.det?.substring(0, 150) + "..." || "No description available."}
-              </p>
+
+              {/* Short Description */}
+              <div>
+                <h2 className="text-base md:text-lg font-medium text-gray-900 mb-2">Product description</h2>
+                <p className="text-gray-700 break-words text-sm leading-relaxed">
+                  {product.shortDescription || product.det?.substring(0, 150) + "..." || "No description available."}
+                </p>
+              </div>
 
               {/* Friendly message */}
               {message && (
-                <div className="p-3 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                <div className="p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm">
                   {message}
                 </div>
               )}

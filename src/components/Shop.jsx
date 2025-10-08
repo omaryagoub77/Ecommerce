@@ -4,23 +4,34 @@ import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 import firebaseService from '../utils/firebaseService';
 import { optimizeImageUrl, imagePreloader } from '../utils/imageUtils';
+import { getOptimizedImageSrc, preloadCriticalImages } from '../utils/optimizedImages';
 import performanceMonitor from '../utils/performanceMonitor';
 
-// Dynamic imports for code splitting - only import what we need
+// Aggressive dynamic imports to reduce initial bundle size
 const HeroSlider = lazy(() => import('./HeroSlider'));
-const ShoppingCart = lazy(() => import('lucide-react').then(mod => ({ default: mod.ShoppingCart })));
-const WifiOff = lazy(() => import('lucide-react').then(mod => ({ default: mod.WifiOff })));
-const Heart = lazy(() => import('lucide-react').then(mod => ({ default: mod.Heart })));
-const Search = lazy(() => import('lucide-react').then(mod => ({ default: mod.Search })));
-const X = lazy(() => import('lucide-react').then(mod => ({ default: mod.X })));
-const Grid = lazy(() => import('lucide-react').then(mod => ({ default: mod.Grid })));
-const List = lazy(() => import('lucide-react').then(mod => ({ default: mod.List })));
 
-// Image imports
-
-import womenImage from "../public/women.jpg";
-import manImage from "../public/man.jpg";
-import kidImage from "../public/kid.jpg";
+// Lazy load icons only when needed
+const ShoppingCart = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.ShoppingCart }))
+);
+const WifiOff = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.WifiOff }))
+);
+const Heart = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.Heart }))
+);
+const Search = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.Search }))
+);
+const X = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.X }))
+);
+const Grid = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.Grid }))
+);
+const List = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.List }))
+);
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -149,8 +160,8 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           src={optimizeImageUrl(primaryImage, 75)}
           alt={product.name}
           effect="blur"
-          width={400}
-          height={400}
+          // width={400}
+          // height={400}
           className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
@@ -357,13 +368,18 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
   );
 });
 
-// Category Navigation Component
+// Category Navigation Component with optimized images
 const CategoryNav = React.memo(() => {
   const categories = [
-    { name: "men", img: manImage },
-    { name: "women", img: womenImage },
-    { name: "kids", img: kidImage },
+    { name: "men", img: getOptimizedImageSrc('men') },
+    { name: "women", img: getOptimizedImageSrc('women') },
+    { name: "kids", img: getOptimizedImageSrc('kids') },
   ];
+
+  // Preload critical images on component mount
+  useEffect(() => {
+    preloadCriticalImages();
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -580,7 +596,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50">
+          <div className="p-6 grid grid-cols-2 gap-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -661,11 +677,12 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         {men.length > 0 && (
           <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
             <SectionHeader title="Men's Collection" count={men.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-1"
-            }`}>
+            <div className={`grid gap-3 sm:gap-4 md:gap-6 
+           
+            sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
+            
+            }
+            `}>
               {men.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -685,7 +702,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <SectionHeader title="Women's Collection" count={women.length} />
             <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
               viewMode === "grid" 
-                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
                 : "grid-cols-1"
             }`}>
               {women.map((product) => (
@@ -707,7 +724,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <SectionHeader title="Kids' Collection" count={kids.length} />
             <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
               viewMode === "grid" 
-                ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3" 
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
                 : "grid-cols-1"
             }`}>
               {kids.map((product) => (
