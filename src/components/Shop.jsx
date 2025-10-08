@@ -721,7 +721,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
               <div className="flex justify-center mt-6">
                 <button
                   onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_MEN' })}
-                  className="px-6 py-2.5 bg-red-400 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
+                  className="px-6 py-2.5 bg-red-00 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
                 >
                   {showAllMen ? `Show Less` : `Show More (${filteredMen.length - 3} more)`}
                 </button>
