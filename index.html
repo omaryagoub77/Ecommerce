@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Premium clothes shop - Find the latest fashion trends" />
+  <meta name="theme-color" content="#b91c1c" />
+  <title>Clothes Shop - Premium Fashion Store</title>
+
+  <!-- Preconnect to external domains -->
+  <link rel="preconnect" href="https://res.cloudinary.com" />
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+
+  <!-- Critical CSS inlined -->
+  <style>
+    /* Critical above-the-fold styles */
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale
+    }
+
+    .flex {
+      display: flex
+    }
+
+    .items-center {
+      align-items: center
+    }
+
+    .justify-center {
+      justify-content: center
+    }
+
+    .justify-between {
+      justify-content: space-between
+    }
+
+    .bg-white {
+      background-color: white
+    }
+
+    .bg-red-700 {
+      background-color: #b91c1c
+    }
+
+    .text-white {
+      color: white
+    }
+
+    .text-red-700 {
+      color: #b91c1c
+    }
+
+    .w-full {
+      width: 100%
+    }
+
+    .h-full {
+      height: 100%
+    }
+
+    .min-h-screen {
+      min-height: 100vh
+    }
+
+    .p-4 {
+      padding: 1rem
+    }
+
+    .m-0 {
+      margin: 0
+    }
+
+    .mb-4 {
+      margin-bottom: 1rem
+    }
+
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .5
+      }
+    }
+
+    .animate-spin {
+      animation: spin 1s linear infinite
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg)
+      }
+
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    img {
+      max-width: 100%;
+      height: auto
+    }
+
+    .grid {
+      display: grid
+    }
+
+    .grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr))
+    }
+
+    @media (max-width:768px) {
+      .grid-cols-2 {
+        grid-template-columns: repeat(1, minmax(0, 1fr))
+      }
+    }
+  </style>
+
+  <!-- Defer non-critical CSS -->
+  <noscript>
+  </noscript>
+  <script type="module" crossorigin src="./assets/index-nyGu-4kg.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/vendor-d2XN-_nt.js">
+  <link rel="modulepreload" crossorigin href="./assets/ui-DPpDBAq4.js">
+  <link rel="modulepreload" crossorigin href="./assets/firebase-DjIx1_qE.js">
+  <link rel="modulepreload" crossorigin href="./assets/router-Bw3HBEct.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-V4KKk7xg.css">
+</head>
+
+<body>
+  <div id="root">
+    <!-- Loading placeholder to prevent layout shift -->
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f9fafb">
+      <div style="text-align:center">
+        <div
+          style="width:40px;height:40px;border:3px solid #e5e7eb;border-top:3px solid #b91c1c;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px">
+        </div>
+        <p style="color:#6b7280;font-size:14px;margin:0">Loading Clothes Shop...</p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
