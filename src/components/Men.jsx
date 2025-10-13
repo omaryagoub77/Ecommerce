@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback, useReducer } from "react";
 import { collection, getDocs, query, limit, startAfter, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { Link } from "react-router-dom";
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 import { ShoppingCart, Heart, WifiOff, Expand } from "lucide-react";
 
 // State reducer for better performance
@@ -62,6 +64,9 @@ const saveFavoritesToStorage = (favorites) => {
 
 // Memoized Product Card Component
 const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
   const originalPrice = parseFloat(product.price) || 0;
   const discountedPrice = parseFloat(product.newprice || product.newPrice) || originalPrice;
 
@@ -72,17 +77,38 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
     <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
-        {primaryImage ? (
-          <img
-            src={primaryImage}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-500 text-xs">No Image</span>
+        <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
+          {primaryImage ? (
+            <LazyLoadImage
+              src={primaryImage}
+              alt={product.name}
+              effect="blur"
+              className={`w-full h-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+              placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+                <span className="text-gray-500 text-xs">No Image</span>
+              </div>
             </div>
+          )}
+        </Link>
+        
+        {/* Image Loading Placeholder */}
+        {!imageLoaded && !imageError && primaryImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
+            <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          </div>
+        )}
+        
+        {/* Image Error Fallback */}
+        {imageError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-1" />
+            <p className="text-gray-500 text-xs">Image unavailable</p>
           </div>
         )}
         
@@ -201,6 +227,7 @@ const SkeletonLoader = () => (
     </div>
   </div>
 );
+
 // Section Header Component
 const SectionHeader = React.memo(({ title, count }) => (
   <div className="flex items-center justify-between mb-4">
@@ -344,8 +371,8 @@ const Men = ({ onAddToCart, searchQuery }) => {
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
           </div>
@@ -385,7 +412,7 @@ const Men = ({ onAddToCart, searchQuery }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {products.map((product) => (
             <ProductCard
               key={product.id}

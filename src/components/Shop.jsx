@@ -622,11 +622,11 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   }, [searchQuery]);
 
   // Load more products
-  const loadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      fetchProducts(page + 1);
-    }
-  }, [loading, hasMore, page, fetchProducts]);
+  // const loadMore = useCallback(() => {
+  //   if (!loading && hasMore) {
+  //     fetchProducts(page + 1);
+  //   }
+  // }, [loading, hasMore, page, fetchProducts]);
 
   // Create a stable favorite toggle function
   const handleFavoriteClick = useCallback((productId) => {
@@ -837,7 +837,7 @@ const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
         </div>
 
         {/* Load More Button */}
-        {hasMore && (
+        {/* {hasMore && (
           <div className="flex justify-center my-8">
             <button
               onClick={loadMore}
@@ -856,7 +856,7 @@ const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
                 "Load More Products"
               )}
             </button>
-          </div>
+          </div> */}
         )}
       </div>
     </ErrorBoundary>

@@ -281,59 +281,68 @@ export default function CheckoutModal({
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      setMessage("Please correct the errors in the form.");
-      return;
-    }
-    if (!cart || cart.length === 0) {
-      setMessage("Your cart is empty.");
-      return;
-    }
+ // In CheckoutModal component, update the handleSubmit function:
 
-    try {
-      setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) {
+    setMessage("Please correct the errors in the form.");
+    return;
+  }
+  if (!cart || cart.length === 0) {
+    setMessage("Your cart is empty.");
+    return;
+  }
 
-      let location = null;
-      if (form.address.includes(",")) {
-        const [lat, lng] = form.address.split(",").map(Number);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          location = { lat, lng };
-        }
+  try {
+    setLoading(true);
+
+    let location = null;
+    if (form.address.includes(",")) {
+      const [lat, lng] = form.address.split(",").map(Number);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        location = { lat, lng };
       }
-
-      // Build order object
-      const newOrder = {
-        id: Date.now().toString(), // unique ID for localStorage
-        client: form,
-        items: cart,
-        total,
-        status: "Pending", // match MyOrders styling
-        timestamp: new Date().toISOString(),
-        location,
-        userId: user?.uid || null,
-      };
-
-      // Save to Firestore
-      await addDoc(collection(db, "orders"), newOrder);
-
-      // Save also to localStorage
-      const existingOrders = JSON.parse(localStorage.getItem("orders")) || [];
-      localStorage.setItem("orders", JSON.stringify([...existingOrders, newOrder]));
-
-      setMessage("Order placed successfully!");
-      setForm({ name: "", email: "", phone: "", address: "" });
-      setAddressInput("");
-      onOrderSuccess?.();
-      setTimeout(() => onClose(), 2000);
-    } catch (error) {
-      console.error("Error placing order:", error);
-      setMessage("Failed to place order. Try again.");
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Process cart items to ensure color data is properly formatted
+    const processedCart = cart.map(item => ({
+      ...item,
+      // Ensure we have a colors field (array) for each item
+      selectedColors: item.selectedColors || (item.selectedColor ? [item.selectedColor] : [])
+    }));
+
+    // Build order object
+    const newOrder = {
+      id: Date.now().toString(), // unique ID for localStorage
+      client: form,
+      items: processedCart, // Use processed cart with proper color data
+      total,
+      status: "Pending", // match MyOrders styling
+      timestamp: new Date().toISOString(),
+      location,
+      userId: user?.uid || null,
+    };
+
+    // Save to Firestore
+    await addDoc(collection(db, "orders"), newOrder);
+
+    // Save also to localStorage
+    const existingOrders = JSON.parse(localStorage.getItem("orders")) || [];
+    localStorage.setItem("orders", JSON.stringify([...existingOrders, newOrder]));
+
+    setMessage("Order placed successfully!");
+    setForm({ name: "", email: "", phone: "", address: "" });
+    setAddressInput("");
+    onOrderSuccess?.();
+    setTimeout(() => onClose(), 2000);
+  } catch (error) {
+    console.error("Error placing order:", error);
+    setMessage("Failed to place order. Try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (message) {
@@ -431,20 +440,37 @@ export default function CheckoutModal({
                             <div className="text-sm font-semibold text-gray-900">
                               {item.name}
                             </div>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
                               <span>Qty: {item.qty}</span>
                               {item.selectedSize && (
                                 <span>Size: {item.selectedSize}</span>
                               )}
-                              {item.selectedColor && (
-                                <p className="text-sm text-gray-600 mt-1 flex items-center">
+                              {/* Display multiple colors */}
+                              {item.selectedColors && Array.isArray(item.selectedColors) && item.selectedColors.length > 0 && (
+                                <span className="flex items-center">
+                                  Colors: 
+                                  <div className="flex ml-1">
+                                    {item.selectedColors.map((color, colorIndex) => (
+                                      <span
+                                        key={colorIndex}
+                                        className="w-4 h-4 rounded-full border ml-1"
+                                        style={{ backgroundColor: color }}
+                                        title={color}
+                                      />
+                                    ))}
+                                  </div>
+                                </span>
+                              )}
+                              {/* Fallback for single color */}
+                              {item.selectedColor && (!item.selectedColors || !Array.isArray(item.selectedColors)) && (
+                                <span className="flex items-center">
                                   Color: 
                                   <span
-                                    className="ml-2 w-5 h-5 rounded-full border"
+                                    className="ml-1 w-4 h-4 rounded-full border"
                                     style={{ backgroundColor: item.selectedColor }}
                                     title={item.selectedColor}
                                   />
-                                </p>
+                                </span>
                               )}
                             </div>
                           </div>

@@ -38,8 +38,11 @@ const FavoritesPage = ({ onAddToCart }) => {
         return;
       }
       
+      // Get the actual Firestore instance
+      const firestore = await db.get();
+      
       // Fetch products from Firebase
-      const q = query(collection(db, "products"), where(documentId(), "in", favoriteIds));
+      const q = query(collection(firestore, "products"), where(documentId(), "in", favoriteIds));
       const querySnapshot = await getDocs(q);
       
       const favoriteProducts = querySnapshot.docs.map(doc => ({
@@ -239,7 +242,7 @@ const FavoritesPage = ({ onAddToCart }) => {
         {/* Continue Shopping */}
         <div className="mt-12 text-center">
           <NavLink
-            to={"/Ecommerce"}
+            to={"/"}
             
             className="inline-flex mb-8 items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
           >
