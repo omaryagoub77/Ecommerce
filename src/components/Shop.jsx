@@ -32,6 +32,12 @@ const Grid = lazy(() =>
 const List = lazy(() => 
   import('lucide-react').then(mod => ({ default: mod.List }))
 );
+const ChevronLeft = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.ChevronLeft }))
+);
+const ChevronRight = lazy(() => 
+  import('lucide-react').then(mod => ({ default: mod.ChevronRight }))
+);
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -164,19 +170,19 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
-    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
+    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full w-40 sm:w-48 md:w-56 flex-shrink-0">
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
         <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
           {primaryImage ? (
             <LazyLoadImage
-            src={optimizeImageUrl(primaryImage, 75)}
-            alt={product.name}
-            effect=""
-            className={`w-full h-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-            placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
+              src={optimizeImageUrl(primaryImage, 75)}
+              alt={product.name}
+              effect=""
+              className={`w-full h-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+              placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-200">
@@ -281,7 +287,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
 
 // Skeleton Loader Component
 const SkeletonLoader = () => (
-  <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
+  <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full w-40 sm:w-48 md:w-56 flex-shrink-0">
     {/* Image Container */}
     <div className="relative overflow-hidden bg-gray-200 aspect-[1/1]">
       {/* Discount Badge Placeholder */}
@@ -317,6 +323,93 @@ const SkeletonLoader = () => (
     </div>
   </div>
 );
+
+// Horizontally Scrollable Section Component
+const HorizontallyScrollableSection = React.memo(({ 
+  title, 
+  count, 
+  products, 
+  onAddToCart, 
+  onAddToFavorites, 
+  isFav,
+  categoryRoute,
+  loading = false
+}) => {
+  const scrollContainerRef = useRef(null);
+  
+  const scroll = (direction) => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = scrollContainerRef.current.offsetWidth * 0.8;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
+  return (
+    <div className="py-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
+        <div className="flex items-center space-x-3">
+          <span className="bg-red-100 text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
+            {count} {count === 1 ? "item" : "items"}
+          </span>
+          <div className="flex space-x-1">
+            <button
+              onClick={() => scroll('left')}
+              className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-700" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-700" />
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="relative">
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto overflow-y-hidden gap-3 sm:gap-4 pb-4 scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonLoader key={i} />
+            ))
+          ) : (
+            products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={onAddToFavorites}
+                isFav={isFav(product.id)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+      
+      {/* Show More Button */}
+      <div className="flex justify-center mt-4">
+        <Link
+          to={categoryRoute}
+          className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium inline-block"
+        >
+          View All {title}
+        </Link>
+      </div>
+    </div>
+  );
+});
 
 // Search Bar Component
 const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) => {
@@ -418,16 +511,6 @@ const CategoryNav = React.memo(() => {
     </div>
   );
 });
-
-// Section Header Component
-const SectionHeader = React.memo(({ title, count }) => (
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
-    <span className="bg-red-100 text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
-      {count} {count === 1 ? "item" : "items"}
-    </span>
-  </div>
-));
 
 // Main Component
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
@@ -585,6 +668,11 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       ? Object.values(favoriteState) 
       : [];
 
+  // Helper function to check if a product is a favorite
+  const isProductFavorite = useCallback((productId) => {
+    return safeFavoriteState.includes(productId);
+  }, [safeFavoriteState]);
+
   // Group products and apply search filter
   const allMen = products.filter((p) => p.category === "men");
   const allWomen = products.filter((p) => p.category === "women");
@@ -603,9 +691,10 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
 
   // Show limited products (3 initially) or all based on state
   // When searching, show all results, otherwise limit to 3
-  const men = searchQuery.trim() !== "" ? filteredMen : (showAllMen ? filteredMen : filteredMen.slice(0, 3));
-  const women = searchQuery.trim() !== "" ? filteredWomen : (showAllWomen ? filteredWomen : filteredWomen.slice(0, 3));
-  const kids = searchQuery.trim() !== "" ? filteredKids : (showAllKids ? filteredKids : filteredKids.slice(0, 3));
+// Always show all products, but apply search filtering
+const men = searchQuery.trim() !== "" ? filteredMen : filteredMen;
+const women = searchQuery.trim() !== "" ? filteredWomen : filteredWomen;
+const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
 
   // Calculate total filtered results for search display
   const totalFilteredResults = filteredMen.length + filteredWomen.length + filteredKids.length;
@@ -620,7 +709,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="p-6 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
+          <div className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto pb-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -669,8 +758,8 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
           filteredCount={totalFilteredResults}
         />
 
-        {/* View Mode Toggle */}
-        <div className="max-w-7xl mx-auto px-4 mb-4 hidden sm:flex justify-end">
+        {/* View Mode Toggle - Hidden as we're using horizontal scroll */}
+        <div className="max-w-7xl mx-auto px-4 mb-4 hidden">
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <button
               type="button"
@@ -697,104 +786,56 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
           </div>
         </div>
 
-        {/* Men Section */}
-        {filteredMen.length > 0 && (
-          <div id="men-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Men's Collection" count={filteredMen.length} />
-            <div className={`grid  gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-2 " 
-            }`}>
-              {men.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={onAddToCart}
-                  onAddToFavorites={handleFavoriteClick}
-                  isFav={safeFavoriteState.includes(product.id)}
-                />
-              ))}
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Men Section */}
+          {filteredMen.length > 0 && (
+            <div id="men-section">
+              <HorizontallyScrollableSection
+                title="Men's Collection"
+                count={filteredMen.length}
+                products={men}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/men"
+                loading={loading && products.length === 0}
+              />
             </div>
-            {/* Show More Button for Men */}
-            {filteredMen.length > 3 && searchQuery.trim() === "" && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_MEN' })}
-                  className="px-6 py-2.5 bg-red-00 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
-                >
-                  {showAllMen ? `Show Less` : `Show More (${filteredMen.length - 3} more)`}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Women Section */}
-        {filteredWomen.length > 0 && (
-          <div id="women-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Women's Collection" count={filteredWomen.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-2"
-            }`}>
-              {women.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={onAddToCart}
-                  onAddToFavorites={handleFavoriteClick}
-                  isFav={safeFavoriteState.includes(product.id)}
-                />
-              ))}
+          {/* Women Section */}
+          {filteredWomen.length > 0 && (
+            <div id="women-section">
+              <HorizontallyScrollableSection
+                title="Women's Collection"
+                count={filteredWomen.length}
+                products={women}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/women"
+                loading={loading && products.length === 0}
+              />
             </div>
-            {/* Show More Button for Women */}
-            {filteredWomen.length > 3 && searchQuery.trim() === "" && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_WOMEN' })}
-                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
-                >
-                  {showAllWomen ? `Show Less` : `Show More (${filteredWomen.length - 3} more)`}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Kids Section */}
-        {filteredKids.length > 0 && (
-          <div id="kids-section" className="max-w-7xl mx-auto px-4 py-4">
-            <SectionHeader title="Kids' Collection" count={filteredKids.length} />
-            <div className={`grid gap-3 sm:gap-4 md:gap-6 ${
-              viewMode === "grid" 
-                ? "p-4 grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" 
-                : "grid-cols-2"
-            }`}>
-              {kids.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={onAddToCart}
-                  onAddToFavorites={handleFavoriteClick}
-                  isFav={safeFavoriteState.includes(product.id)}
-                />
-              ))}
+          {/* Kids Section */}
+          {filteredKids.length > 0 && (
+            <div id="kids-section">
+              <HorizontallyScrollableSection
+                title="Kids' Collection"
+                count={filteredKids.length}
+                products={kids}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/kids"
+                loading={loading && products.length === 0}
+              />
             </div>
-            {/* Show More Button for Kids */}
-            {filteredKids.length > 3 && searchQuery.trim() === "" && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => dispatch({ type: 'TOGGLE_SHOW_ALL_KIDS' })}
-                  className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
-                >
-                  {showAllKids ? `Show Less` : `Show More (${filteredKids.length - 3} more)`}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+
         {/* Load More Button */}
         {hasMore && (
           <div className="flex justify-center my-8">

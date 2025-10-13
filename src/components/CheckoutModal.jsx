@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import {
   X,
   ShoppingCart,
@@ -12,14 +15,8 @@ import {
 import { collection, addDoc } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
-
 import SignUp from "../Auth/SignUp";
 import SignIn from "../Auth/SignIn";
-
-// Leaflet imports
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
 // Fix default marker icon issue in Leaflet
 const markerIcon = new L.Icon({
@@ -58,28 +55,55 @@ function LocationPicker({ setAddress, initialPosition }) {
   return position ? <Marker position={position} icon={markerIcon} /> : null;
 }
 
-function LocationPreview({ address }) {
-  if (!address) {
-    return (
-      <p className="text-gray-500 p-4 text-center">
-        Enter your address or use location to preview on map.
-      </p>
-    );
-  }
-
-  const encoded = encodeURIComponent(address);
+function MapComponent({ center, setAddress, initialPosition, address }) {
   return (
-    <iframe
-      title="map-preview"
-      src={`https://www.google.com/maps?q=${encoded}&t=k&z=15&output=embed`}
-      width="100%"
-      height="250"
-      style={{ border: 0 }}
-      loading="lazy"
-      allowFullScreen
-    ></iframe>
+    <div className="w-full h-64 rounded-lg overflow-hidden border">
+      <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        zoomControl={true}
+      >
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+        />
+        <LocationPicker
+          setAddress={setAddress}
+          initialPosition={initialPosition}
+        />
+        <MapUpdater address={address} />
+      </MapContainer>
+    </div>
   );
 }
+
+// Helper function to safely get image URL
+const getImageUrl = (item) => {
+  if (!item) return "/placeholder.jpg";
+  
+  if (item.image && typeof item.image === 'string') {
+    return item.image;
+  }
+  
+  if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+    return item.images[0];
+  }
+  
+  if (item.images && typeof item.images === 'string') {
+    return item.images;
+  }
+  
+  if (item.url && typeof item.url === 'string') {
+    return item.url;
+  }
+  
+  if (item.src && typeof item.src === 'string') {
+    return item.src;
+  }
+  
+  return "/placeholder.jpg";
+};
 
 export default function CheckoutModal({
   isOpen,
@@ -100,10 +124,26 @@ export default function CheckoutModal({
   const [user, setUser] = useState(null);
   const [showSignUp, setShowSignUp] = useState(false);
   const [mapCenter, setMapCenter] = useState([-1.9577, 30.1127]); // Kigali default center
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // New state for location search
+  const [addressInput, setAddressInput] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const searchTimeoutRef = useRef(null);
+  const addressInputRef = useRef(null);
+
+  // Debug log
+  useEffect(() => {
+    console.log("CheckoutModal mounted with props:", { isOpen, total, cart });
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, [isOpen, total, cart]);
 
   // Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed:", currentUser);
       setUser(currentUser);
     });
     return () => unsubscribe();
@@ -133,6 +173,74 @@ export default function CheckoutModal({
     }
   };
 
+  // Handle address input change with debouncing
+  const handleAddressChange = (e) => {
+    const value = e.target.value;
+    setAddressInput(value);
+    setLocationError("");
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      if (value.trim()) {
+        searchLocation(value);
+      }
+    }, 500);
+  };
+
+  // Handle Enter key press in address input
+  const handleAddressKeyPress = (e) => {
+    if (e.key === "Enter") {
+      // Clear any pending timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      if (addressInput.trim()) {
+        searchLocation(addressInput);
+      }
+    }
+  };
+
+  // Search for location using OpenStreetMap Nominatim API
+  const searchLocation = async (query) => {
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    setLocationError("");
+    
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
+      );
+      
+      if (!response.ok) throw new Error("Failed to fetch location");
+      
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const coordinates = `${lat},${lon}`;
+        
+        // Update form with coordinates but keep the address input unchanged
+        setForm((prev) => ({ ...prev, address: coordinates }));
+        
+        // Map center will be updated via the useEffect above
+      } else {
+        setLocationError("Location not found");
+      }
+    } catch (err) {
+      console.error("Error searching location:", err);
+      setLocationError("Failed to search location");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const useMyLocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -143,6 +251,7 @@ export default function CheckoutModal({
         const { latitude, longitude } = pos.coords;
         const coords = `${latitude},${longitude}`;
         setForm((prev) => ({ ...prev, address: coords }));
+        setAddressInput(coords); // Show coordinates when using my location
         // Map center will be updated via the useEffect above
       },
       (err) => {
@@ -215,6 +324,7 @@ export default function CheckoutModal({
 
       setMessage("Order placed successfully!");
       setForm({ name: "", email: "", phone: "", address: "" });
+      setAddressInput("");
       onOrderSuccess?.();
       setTimeout(() => onClose(), 2000);
     } catch (error) {
@@ -232,7 +342,8 @@ export default function CheckoutModal({
     }
   }, [message]);
 
-  if (!isOpen) return null;
+  // Don't render anything if not mounted or not open
+  if (!isMounted || !isOpen) return null;
 
   return (
     <>
@@ -312,12 +423,7 @@ export default function CheckoutModal({
                       >
                         <div className="flex items-center gap-4">
                           <img
-                            src={
-                              item.image ||
-                              (Array.isArray(item.images)
-                                ? item.images[0]
-                                : item.images)
-                            }
+                            src={getImageUrl(item)}
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg"
                           />
@@ -427,16 +533,24 @@ export default function CheckoutModal({
                       Shipping Address
                     </label>
                     <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        name="address"
-                        value={form.address}
-                        onChange={handleChange}
-                        className="flex-1 px-4 py-3 border rounded-lg"
-                        placeholder="Coordinates will appear here"
-                        disabled={loading}
-                        readOnly
-                      />
+                      <div className="flex-1 relative">
+                        <input
+                          ref={addressInputRef}
+                          type="text"
+                          name="addressInput"
+                          value={addressInput}
+                          onChange={handleAddressChange}
+                          onKeyPress={handleAddressKeyPress}
+                          className="w-full px-4 py-3 border rounded-lg"
+                          placeholder="Type a city or country name..."
+                          disabled={loading}
+                        />
+                        {isSearching && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={useMyLocation}
@@ -445,9 +559,17 @@ export default function CheckoutModal({
                         Use My Location
                       </button>
                     </div>
+                    {locationError && (
+                      <p className="text-sm text-red-600">{locationError}</p>
+                    )}
                     {formErrors.address && (
                       <p className="text-sm text-red-600">
                         {formErrors.address}
+                      </p>
+                    )}
+                    {form.address && form.address.includes(",") && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Coordinates: {form.address}
                       </p>
                     )}
                   </div>
@@ -461,33 +583,17 @@ export default function CheckoutModal({
                     <div className="text-xs text-gray-500 mb-2">
                       Click on the map to select your location
                     </div>
-                    <div className="w-full h-64 rounded-lg overflow-hidden border">
-                      <MapContainer
-                        center={mapCenter}
-                        zoom={13}
-                        style={{ height: "100%", width: "100%" }}
-                      >
-                       <TileLayer
-  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-  attribution="Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
- />
-
-                        <LocationPicker
-                          setAddress={(coords) =>
-                            setForm((prev) => ({ ...prev, address: coords }))
-                          }
-                          initialPosition={form.address && form.address.includes(",") 
-                            ? form.address.split(",").map(Number) 
-                            : mapCenter}
-                        />
-                        <MapUpdater address={form.address} />
-                      </MapContainer>
-                    </div>
-                    {form.address && (
-                      <p className="text-xs text-gray-600 mt-1">
-                        Selected: {form.address}
-                      </p>
-                    )}
+                    <MapComponent
+                      center={mapCenter}
+                      setAddress={(coords) => {
+                        setForm((prev) => ({ ...prev, address: coords }));
+                        setAddressInput(coords); // Show coordinates when clicking on map
+                      }}
+                      initialPosition={form.address && form.address.includes(",") 
+                        ? form.address.split(",").map(Number) 
+                        : mapCenter}
+                      address={form.address}
+                    />
                   </div>
 
                   <button

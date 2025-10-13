@@ -1,68 +1,95 @@
-import { ShoppingCart, List, X, House, Heart, Search } from "lucide-react";
+import { ShoppingCart, List, X, House, Heart, Search, Package } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import React from "react";
+import { useState, useEffect } from "react";
 
-export default function Header({ cartItemCount, onCartClick }) {
+export default function Header({ cartItemCount, onCartClick, isCartOpen }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cartOpenTab, setCartOpenTab] = useState(false);
-
   const location = useLocation();
-
-  // Fix typo: "Wemen" should be "Women"
-  const links = ["Home", "Men", "Women", "Kids","Favorites" ,"contact" ,"Orders"];
 
   // Close mobile menu when route changes
   useEffect(() => {
     setMenuOpen(false);
   }, [location]);
 
+  // Navigation links
+  const links = ["Home", "Men", "Women", "Kids", "contact", "Orders"];
+
+  // Helper function to check if a link is active
+  const isActive = (path) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <>
       {/* Desktop Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-md">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-18">
             {/* Logo + Nav */}
-            <div className="flex items-center space-x-8">
-              <NavLink to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-red-700 rounded-full flex items-center  justify-center">
-                  <span className="text-white font-bold text-lg">E</span>
+            <div className="flex items-center space-x-3 md:space-x-6 lg:space-x-8">
+              <NavLink to="/" className="flex items-center space-x-1.5 sm:space-x-2 group">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                  <span className="text-white font-bold text-lg sm:text-xl">E</span>
                 </div>
-                <h1 className="text-2xl font-bold text-red-700 ml-[-7px]">-commerce</h1>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-red-700 to-red-600 bg-clip-text text-transparent ml-[-2px] sm:ml-[-3px] md:ml-[-4px] group-hover:from-red-600 group-hover:to-red-700 transition-all duration-300 whitespace-nowrap">-commerce</h1>
               </NavLink>
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex space-x-1">
-                {links.map((label) => (
-                  <NavLink
-                    key={label}
-                    to={`/${label === "Home" ? "" : label.toLowerCase()}`}
-                    className={({ isActive }) =>
-                      `px-3 py-2 rounded-lg font-medium transition-all duration-300 ${
-                        isActive
-                          ? "text-white bg-red-700 shadow-md"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                      }`
-                    }
-                  >
-                    {label}
-                  </NavLink>
-                ))}
+                {links.map((label) => {
+                  const path = label === "Home" ? "/" : `/${label.toLowerCase()}`;
+                  return (
+                    <NavLink
+                      key={label}
+                      to={path}
+                      end={label === "Home"}
+                      className={({ isActive }) =>
+                        `relative px-4 py-3 font-medium transition-all duration-300 group ${
+                          isActive
+                            ? "text-red-700"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`
+                      }
+                    >
+                      {label}
+                      {/* Red underline for active state */}
+                      <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-red-700 transform transition-transform duration-300 ${
+                        isActive(path) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50"
+                      }`} />
+                    </NavLink>
+                  );
+                })}
               </nav>
             </div>
 
-            {/* Cart Button */}
-            <div className="flex items-center">
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-2">
+              {/* Favorites Heart Button */}
+              <div className="hidden md:block">
+                <NavLink
+                  to="/favorites"
+                  className={({ isActive }) =>
+                    `relative p-2 transition-colors duration-300 rounded-full hover:bg-red-50 ${
+                      isActive
+                        ? "text-red-700"
+                        : "text-gray-600 hover:text-red-700"
+                    }`
+                  }
+                >
+                  <Heart className={`w-6 h-6 transition-all duration-300 ${
+                    location.pathname === "/favorites" ? "fill-red-700" : "hover:scale-110"
+                  }`} />
+                </NavLink>
+              </div>
+
+              {/* Cart Button */}
               <div className="relative">
                 <button
-                  onClick={() => {
-                    onCartClick();
-                    setCartOpenTab(true);
-                  }}
+                  onClick={onCartClick}
                   className="relative p-2 text-gray-600 hover:text-red-700 transition-colors duration-300 rounded-full hover:bg-red-50"
                 >
-                  <ShoppingCart className="w-6 h-6" />
+                  <ShoppingCart className="w-6 h-6 hover:scale-110 transition-transform duration-300" />
                   {cartItemCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-700 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md animate-pulse">
                       {cartItemCount > 99 ? "99+" : cartItemCount}
@@ -82,8 +109,6 @@ export default function Header({ cartItemCount, onCartClick }) {
           </div>
         </div>
       </header>
-
-
 
       {/* Overlay */}
       {menuOpen && (
@@ -112,11 +137,22 @@ export default function Header({ cartItemCount, onCartClick }) {
         <div className="p-4">
           <nav className="flex flex-col space-y-1">
             {links.map((label) => {
-              const Icon = label === "Home" ? House : label === "Favorites" ? Heart : null;
+              const getIcon = (label) => {
+                switch(label) {
+                  case "Home": return House;
+                  case "Favorites": return Heart;
+                  case "Orders": return Package;
+                  case "contact": return Search;
+                  default: return null;
+                }
+              };
+              const Icon = getIcon(label);
+              const path = label === "Home" ? "/" : `/${label.toLowerCase()}`;
               return (
                 <NavLink
                   key={label}
-                  to={`/${label === "Home" ? "" : label.toLowerCase()}`}
+                  to={path}
+                  end={label === "Home"}
                   className={({ isActive }) =>
                     `flex items-center p-3 rounded-lg transition-all duration-300 ${
                       isActive
@@ -136,50 +172,63 @@ export default function Header({ cartItemCount, onCartClick }) {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden flex justify-around items-center py-3 fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg z-40">
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center transition-all duration-300 px-4 py-1 rounded-lg ${
-              isActive ? "text-red-700 scale-110" : "text-gray-500"
-            }`
-          }
-        >
-          <House className="w-6 h-6" />
-          <span className="text-xs mt-1">Home</span>
-        </NavLink>
+      <nav className="md:hidden fixed bottom-[10px] left-[5px] right-[5px] bg-white rounded-[30px] shadow-xl border border-gray-200 z-40">
+        <div className="flex justify-around items-center py-3 px-2">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center transition-all duration-300 px-3 py-2 rounded-xl ${
+                isActive ? "text-red-400 bg-red-50 scale-105" : "text-gray-500 hover:text-red-400"
+              }`
+            }
+          >
+            <House className="w-7 h-7" />
+            <span className="text-xs mt-1 font-medium">Home</span>
+          </NavLink>
 
-      
+          <NavLink
+            to="/favorites"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center transition-all duration-300 px-3 py-2 rounded-xl ${
+                isActive ? "text-red-400 bg-red-50 scale-105" : "text-gray-500 hover:text-red-400"
+              }`
+            }
+          >
+            <Heart className={`w-7 h-7 ${
+              location.pathname === "/favorites" ? "fill-red-400" : ""
+            }`} />
+            <span className="text-xs mt-1 font-medium">Favorites</span>
+          </NavLink>
+       
+          <NavLink
+            to="/orders"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center transition-all duration-300 px-3 py-2 rounded-xl ${
+                isActive ? "text-red-400 bg-red-50 scale-105" : "text-gray-500 hover:text-red-400"
+              }`
+            }
+            onClick={() => setMenuOpen(false)}
+          >
+            <Package className="w-7 h-7" />
+            <span className="text-xs mt-1 font-medium">Orders</span>
+          </NavLink>
 
-        <NavLink
-          to="/favorites"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center transition-all duration-300 px-4 py-1 rounded-lg ${
-              isActive ? "text-red-700 scale-110" : "text-gray-500"
-            }`
-          }
-        >
-          <Heart className="w-6 h-6" />
-          <span className="text-xs mt-1">Favorites</span>
-        </NavLink>
-
-        <button
-          onClick={() => {
-            onCartClick();
-            setCartOpenTab(true);
-          }}
-          className={`relative flex flex-col items-center justify-center transition-all duration-300 px-4 py-1 rounded-lg ${
-            cartOpenTab ? "text-red-700 scale-110" : "text-gray-500"
-          }`}
-        >
-          <ShoppingCart className="w-6 h-6" />
-          <span className="text-xs mt-1">Cart</span>
-          {cartItemCount > 0 && (
-            <span className="absolute top-0 right-3 bg-red-700 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-              {cartItemCount > 99 ? "99+" : cartItemCount}
-            </span>
-          )}
-        </button>
+          <button
+            onClick={onCartClick}
+            className={`relative flex flex-col items-center justify-center transition-all duration-300 px-3 py-2 rounded-xl ${
+              isCartOpen ? "text-red-400 bg-red-50 scale-105" : "text-gray-500 hover:text-red-400"
+            }`}
+          >
+            <ShoppingCart className="w-7 h-7" />
+            <span className="text-xs mt-1 font-medium">Cart</span>
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md animate-pulse">
+                {cartItemCount > 99 ? "99+" : cartItemCount}
+              </span>
+            )}
+          </button>
+        </div>
       </nav>
     </>
   );

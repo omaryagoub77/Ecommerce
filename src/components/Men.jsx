@@ -127,7 +127,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
             {product.name}
           </h3>
-          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
+          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-medium capitalize">
             {product.category}
           </span>
         </div>
@@ -344,7 +344,7 @@ const Men = ({ onAddToCart, searchQuery }) => {
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="p-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50">
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -385,7 +385,7 @@ const Men = ({ onAddToCart, searchQuery }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard
               key={product.id}

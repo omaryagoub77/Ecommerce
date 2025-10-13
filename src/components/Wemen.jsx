@@ -346,7 +346,7 @@ const Women = ({ onAddToCart, searchQuery }) => {
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="p-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50">
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -387,7 +387,7 @@ const Women = ({ onAddToCart, searchQuery }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard
               key={product.id}
