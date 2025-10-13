@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, us
 import { Link } from "react-router-dom";
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
-import firebaseService from '../utils/firebaseService';
+import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, startAfter } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import { optimizeImageUrl, imagePreloader } from '../utils/imageUtils';
 import { getOptimizedImageSrc, preloadCriticalImages } from '../utils/optimizedImages';
 import performanceMonitor from '../utils/performanceMonitor';
@@ -155,6 +156,64 @@ const saveFavoritesToStorage = (favorites) => {
     localStorage.setItem('favorites', JSON.stringify(favoritesArray));
   } catch (error) {
     console.error('Error saving favorites to localStorage:', error);
+  }
+};
+
+// Firebase service functions integrated into the component
+const fetchProducts = async (filters = {}) => {
+  try {
+    let q = collection(db, 'products');
+    
+    // Apply filters
+    if (filters.category) {
+      q = query(q, where('category', '==', filters.category));
+    }
+    
+    if (filters.searchQuery) {
+      q = query(q, 
+        where('name', '>=', filters.searchQuery),
+        where('name', '<=', filters.searchQuery + '\\uf8ff')
+      );
+    }
+    
+    // Add pagination
+    if (filters.lastVisible) {
+      q = query(q, startAfter(filters.lastVisible), limit(filters.pageSize || 12));
+    } else {
+      q = query(q, limit(filters.pageSize || 12));
+    }
+    
+    const querySnapshot = await getDocs(q);
+    const products = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    
+    return {
+      products,
+      lastVisible: querySnapshot.docs[querySnapshot.docs.length - 1],
+      hasMore: querySnapshot.docs.length === (filters.pageSize || 12)
+    };
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+};
+
+const fetchCategories = async () => {
+  try {
+    const categoriesRef = collection(db, "categories");
+    const snapshot = await getDocs(categoriesRef);
+
+    const categories = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return categories;
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
   }
 };
 
@@ -462,16 +521,31 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
 
 // Category Navigation Component with optimized images
 const CategoryNav = React.memo(() => {
-  const categories = [
-    { name: "men", img: getOptimizedImageSrc('men') },
-    { name: "women", img: getOptimizedImageSrc('women') },
-    { name: "kids", img: getOptimizedImageSrc('kids') },
-  ];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Preload critical images on component mount
   useEffect(() => {
-    preloadCriticalImages();
+    const fetchCategoriesData = async () => {
+      try {
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoriesData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-spin h-8 w-8 border-4 border-red-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -482,7 +556,7 @@ const CategoryNav = React.memo(() => {
       
       <div className="flex justify-center gap-4 sm:gap-8 md:gap-16">
         {categories.map((cat) => (
-          <div key={cat.name} className="flex flex-col items-center group">
+          <div key={cat.id} className="flex flex-col items-center group">
             <button
               onClick={() => {
                 const section = document.getElementById(`${cat.name}-section`);
@@ -492,13 +566,12 @@ const CategoryNav = React.memo(() => {
               aria-label={`View ${cat.name} products`}
             >
               <LazyLoadImage
-                src={cat.img}
+                src={cat.image || (cat.name ? `/images/categories/${cat.name}.jpg` : '/placeholder.jpg')}
                 alt={`${cat.name} category`}
                 effect="blur"
                 width={96}
                 height={96}
                 className="w-full h-full object-cover"
-                loading="eager"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
@@ -546,7 +619,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   }, []);
 
   // Optimized fetch function with caching - reduce main thread blocking
-  const fetchProducts = useCallback(async (pageNum = 1, search = searchQuery) => {
+  const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
     if (pageNum === 1) {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'RESET_PAGINATION' });
@@ -562,7 +635,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       // Use requestIdleCallback to avoid blocking main thread
       const result = await new Promise((resolve) => {
         const executeQuery = async () => {
-          const queryResult = await firebaseService.fetchProducts(filters);
+          const queryResult = await fetchProducts(filters);
           resolve(queryResult);
         };
         
@@ -609,7 +682,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
 
   // Initial fetch
   useEffect(() => {
-    fetchProducts();
+    fetchProductsData();
   }, []);
 
   // Handle search query changes
@@ -624,9 +697,9 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   // Load more products
   // const loadMore = useCallback(() => {
   //   if (!loading && hasMore) {
-  //     fetchProducts(page + 1);
+  //     fetchProductsData(page + 1);
   //   }
-  // }, [loading, hasMore, page, fetchProducts]);
+  // }, [loading, hasMore, page, fetchProductsData]);
 
   // Create a stable favorite toggle function
   const handleFavoriteClick = useCallback((productId) => {
@@ -856,8 +929,8 @@ const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
                 "Load More Products"
               )}
             </button>
-          </div> */}
-        )}
+          </div>
+        )} */}
       </div>
     </ErrorBoundary>
   );
