@@ -178,9 +178,9 @@ const fetchProducts = async (filters = {}) => {
     
     // Add pagination
     if (filters.lastVisible) {
-      q = query(q, startAfter(filters.lastVisible), limit(filters.pageSize || 12));
+      q = query(q, startAfter(filters.lastVisible), limit(filters.pageSize || 100));
     } else {
-      q = query(q, limit(filters.pageSize || 12));
+      q = query(q, limit(filters.pageSize || 100));
     }
     
     const querySnapshot = await getDocs(q);
@@ -192,7 +192,7 @@ const fetchProducts = async (filters = {}) => {
     return {
       products,
       lastVisible: querySnapshot.docs[querySnapshot.docs.length - 1],
-      hasMore: querySnapshot.docs.length === (filters.pageSize || 12)
+      hasMore: querySnapshot.docs.length === (filters.pageSize || 100)
     };
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -458,10 +458,10 @@ const HorizontallyScrollableSection = React.memo(({
       </div>
       
       {/* Show More Button */}
-      <div className="flex justify-center mt-4">
+      <div className="flex justify-end mt-4">
         <Link
           to={categoryRoute}
-          className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium inline-block"
+          className="  text-red-400  hover:text-red-500 transition-all duration-300  hover:drop-shadow-lg  font-medium inline-block"
         >
           View All {title}
         </Link>
@@ -566,7 +566,7 @@ const CategoryNav = React.memo(() => {
               aria-label={`View ${cat.name} products`}
             >
               <LazyLoadImage
-                src={cat.image || (cat.name ? `/images/categories/${cat.name}.jpg` : '/placeholder.jpg')}
+                src={cat.imageUrl || (cat.name ? `/images/categories/${cat.name}.jpg` : '/placeholder.jpg')}
                 alt={`${cat.name} category`}
                 effect="blur"
                 width={96}
@@ -602,7 +602,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     showAllKids
   } = state;
   
-  const pageSize = 12;
+  const pageSize = 100;
 
   // Create a ref to hold the latest favoriteState
   const favoriteStateRef = useRef(favoriteState);
@@ -619,67 +619,58 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   }, []);
 
   // Optimized fetch function with caching - reduce main thread blocking
-  const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
-    if (pageNum === 1) {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'RESET_PAGINATION' });
-    }
+const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
+  if (pageNum === 1) {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'RESET_PAGINATION' });
+  }
+  
+  try {
+    const filters = {
+      pageSize: 100,
+      lastVisible: pageNum > 1 ? lastVisible : null
+    };
     
-    try {
-      const filters = {
-        // Don't pass searchQuery to Firebase - we'll filter client-side for better results
-        pageSize: 12, // Increased from 8 to get more data for client-side filtering
-        lastVisible: pageNum > 1 ? lastVisible : null
+    // Declare the result variable first
+    let result;
+    
+    // Then assign the value to it
+    result = await new Promise((resolve) => {
+      const executeQuery = async () => {
+        const queryResult = await fetchProducts(filters);
+        resolve(queryResult);
       };
       
-      // Use requestIdleCallback to avoid blocking main thread
-      const result = await new Promise((resolve) => {
-        const executeQuery = async () => {
-          const queryResult = await fetchProducts(filters);
-          resolve(queryResult);
-        };
-        
-        if (window.requestIdleCallback) {
-          window.requestIdleCallback(executeQuery, { timeout: 1000 });
-        } else {
-          setTimeout(executeQuery, 0);
-        }
-      });
-      
-      // Batch state updates to prevent multiple re-renders
-      if (pageNum === 1) {
-        dispatch({ type: 'SET_PRODUCTS', payload: result.products });
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(executeQuery, { timeout: 1000 });
       } else {
-        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...result.products] });
+        setTimeout(executeQuery, 0);
       }
-      
-      dispatch({ type: 'SET_LAST_VISIBLE', payload: result.lastVisible });
-      dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
-      dispatch({ type: 'SET_PAGE', payload: pageNum });
-      
-      // Preload only essential images (first 4)
-      if (result.products.length > 0) {
-        const imageUrls = result.products
-          .slice(0, 4) // Reduced from 6 to 4
-          .map(p => p.images && p.images[0])
-          .filter(Boolean)
-          .map(url => optimizeImageUrl(url, 40)); // Lower quality for preload
-        
-        // Use requestIdleCallback for image preloading
-        if (window.requestIdleCallback) {
-          window.requestIdleCallback(() => {
-            imagePreloader.preloadWithPriority(imageUrls, 2);
-          });
-        }
-      }
-      
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+    });
+    
+    // NOW we can safely log the result
+    console.log("Fetched products:", result.products);
+    console.log("Product categories:", result.products.map(p => p.category));
+    console.log("Products with undefined category:", result.products.filter(p => !p.category));
+    
+    // Rest of your existing code...
+    if (pageNum === 1) {
+      dispatch({ type: 'SET_PRODUCTS', payload: result.products });
+    } else {
+      dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...result.products] });
     }
-  }, [lastVisible, products]);
-
+    
+    dispatch({ type: 'SET_LAST_VISIBLE', payload: result.lastVisible });
+    dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
+    dispatch({ type: 'SET_PAGE', payload: pageNum });
+    
+    // ... rest of the function
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  } finally {
+    dispatch({ type: 'SET_LOADING', payload: false });
+  }
+}, [lastVisible, products]);
   // Initial fetch
   useEffect(() => {
     fetchProductsData();

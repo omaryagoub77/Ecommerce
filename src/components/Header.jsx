@@ -70,7 +70,7 @@ export default function Header({ cartItemCount, onCartClick, isCartOpen }) {
                 <NavLink
                   to="/favorites"
                   className={({ isActive }) =>
-                    `relative p-2 transition-colors duration-300 rounded-full hover:bg-red-50 ${
+                    `relative p-2 transition-colors duration-300 rounded-full ${
                       isActive
                         ? "text-red-700"
                         : "text-gray-600 hover:text-red-700"

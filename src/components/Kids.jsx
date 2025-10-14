@@ -73,11 +73,14 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
       {/* Image Container */}
       <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
         {primaryImage ? (
+          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
           <img
             src={primaryImage}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          
+          </Link>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-200">
             <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
@@ -103,14 +106,7 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
               }`}
             />
           </button>
-          
-          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
-            <button
-              className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 bg-white/80 text-gray-600 hover:bg-gray-100 shadow-sm"
-            >
-              <Expand className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200`} />
-            </button>
-          </Link>
+  
         </div>
 
         {/* Discount Badge */}
@@ -127,9 +123,9 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
           <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
             {product.name}
           </h3>
-          <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
+          {/* <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
             {product.category}
-          </span>
+          </span> */}
         </div>
         
         <div className="flex items-center justify-between mt-auto">
@@ -330,7 +326,7 @@ const Kids = ({ onAddToCart }) => {
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
+          <div className="grid gap-3 sm:gap-4 md:gap-6  sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -371,7 +367,7 @@ const Kids = ({ onAddToCart }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 md:gap-6  sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
           {products.map((product) => (
             <ProductCard
               key={product.id}
