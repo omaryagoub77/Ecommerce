@@ -87,13 +87,9 @@ const debounce = (func, wait) => {
 
 // State reducer for better performance
 const initialState = {
-  products: [],
   loading: false,
   searchQuery: "",
   favoriteState: [], // Initialize as empty array
-  lastVisible: null,
-  hasMore: true,
-  page: 1,
   viewMode: "grid",
   // Add section show more states
   showAllMen: false,
@@ -103,8 +99,6 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'SET_PRODUCTS':
-      return { ...state, products: action.payload };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_SEARCH_QUERY':
@@ -112,16 +106,8 @@ function reducer(state, action) {
     case 'SET_FAVORITE_STATE':
       // Ensure favoriteState is always an array
       return { ...state, favoriteState: Array.isArray(action.payload) ? action.payload : [] };
-    case 'SET_LAST_VISIBLE':
-      return { ...state, lastVisible: action.payload };
-    case 'SET_HAS_MORE':
-      return { ...state, hasMore: action.payload };
-    case 'SET_PAGE':
-      return { ...state, page: action.payload };
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.payload };
-    case 'RESET_PAGINATION':
-      return { ...state, page: 1, lastVisible: null, hasMore: true, products: [] };
     case 'TOGGLE_SHOW_ALL_MEN':
       return { ...state, showAllMen: !state.showAllMen };
     case 'TOGGLE_SHOW_ALL_WOMEN':
@@ -444,7 +430,7 @@ const HorizontallyScrollableSection = React.memo(({
               <SkeletonLoader key={i} />
             ))
           ) : (
-            products.map((product) => (
+            products?.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -452,7 +438,7 @@ const HorizontallyScrollableSection = React.memo(({
                 onAddToFavorites={onAddToFavorites}
                 isFav={isFav(product.id)}
               />
-            ))
+            )) || []
           )}
         </div>
       </div>
@@ -461,7 +447,7 @@ const HorizontallyScrollableSection = React.memo(({
       <div className="flex justify-end mt-4">
         <Link
           to={categoryRoute}
-          className="  text-red-400  hover:text-red-500 transition-all duration-300  hover:drop-shadow-lg  font-medium inline-block"
+          className="text-red-400 hover:text-red-500 transition-all duration-300 hover:drop-shadow-lg font-medium inline-block"
         >
           View All {title}
         </Link>
@@ -520,33 +506,7 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
 });
 
 // Category Navigation Component with optimized images
-const CategoryNav = React.memo(() => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchCategoriesData = async () => {
-      try {
-        const categoriesData = await fetchCategories();
-        setCategories(categoriesData);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategoriesData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-10">
-        <div className="animate-spin h-8 w-8 border-4 border-red-600 border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
+const CategoryNav = React.memo(({ categories }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="text-center mb-6">
@@ -555,7 +515,7 @@ const CategoryNav = React.memo(() => {
       </div>
       
       <div className="flex justify-center gap-4 sm:gap-8 md:gap-16">
-        {categories.map((cat) => (
+        {categories?.map((cat) => (
           <div key={cat.id} className="flex flex-col items-center group">
             <button
               onClick={() => {
@@ -579,7 +539,7 @@ const CategoryNav = React.memo(() => {
               {cat.name}
             </span>
           </div>
-        ))}
+        )) || []}
       </div>
     </div>
   );
@@ -589,20 +549,20 @@ const CategoryNav = React.memo(() => {
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const {
-    products,
     loading,
     searchQuery,
     favoriteState,
-    lastVisible,
-    hasMore,
-    page,
     viewMode,
     showAllMen,
     showAllWomen,
     showAllKids
   } = state;
   
-  const pageSize = 100;
+  // State for products and categories
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Create a ref to hold the latest favoriteState
   const favoriteStateRef = useRef(favoriteState);
@@ -618,62 +578,40 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
   }, []);
 
-  // Optimized fetch function with caching - reduce main thread blocking
-const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
-  if (pageNum === 1) {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    dispatch({ type: 'RESET_PAGINATION' });
-  }
-  
-  try {
-    const filters = {
-      pageSize: 100,
-      lastVisible: pageNum > 1 ? lastVisible : null
+  // Fetch products and categories
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch categories
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+        
+        // Fetch products for each category
+        const categoryPromises = categoriesData.map(async (category) => {
+          const result = await fetchProducts({ category: category.name, pageSize: 100 });
+          return {
+            category: category.name,
+            products: result.products
+          };
+        });
+        
+        const categoryResults = await Promise.all(categoryPromises);
+        
+        // Combine all products
+        const allProducts = categoryResults.flatMap(result => result.products);
+        setProducts(allProducts);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    // Declare the result variable first
-    let result;
-    
-    // Then assign the value to it
-    result = await new Promise((resolve) => {
-      const executeQuery = async () => {
-        const queryResult = await fetchProducts(filters);
-        resolve(queryResult);
-      };
-      
-      if (window.requestIdleCallback) {
-        window.requestIdleCallback(executeQuery, { timeout: 1000 });
-      } else {
-        setTimeout(executeQuery, 0);
-      }
-    });
-    
-    // NOW we can safely log the result
-    console.log("Fetched products:", result.products);
-    console.log("Product categories:", result.products.map(p => p.category));
-    console.log("Products with undefined category:", result.products.filter(p => !p.category));
-    
-    // Rest of your existing code...
-    if (pageNum === 1) {
-      dispatch({ type: 'SET_PRODUCTS', payload: result.products });
-    } else {
-      dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...result.products] });
-    }
-    
-    dispatch({ type: 'SET_LAST_VISIBLE', payload: result.lastVisible });
-    dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
-    dispatch({ type: 'SET_PAGE', payload: pageNum });
-    
-    // ... rest of the function
-  } catch (error) {
-    console.error("Error fetching products:", error);
-  } finally {
-    dispatch({ type: 'SET_LOADING', payload: false });
-  }
-}, [lastVisible, products]);
-  // Initial fetch
-  useEffect(() => {
-    fetchProductsData();
+    fetchData();
   }, []);
 
   // Handle search query changes
@@ -682,15 +620,7 @@ const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) 
     if (searchQuery.trim() !== "") {
       dispatch({ type: 'RESET_SHOW_ALL' });
     }
-    // Don't refetch on search - we'll filter client-side for better UX
   }, [searchQuery]);
-
-  // Load more products
-  // const loadMore = useCallback(() => {
-  //   if (!loading && hasMore) {
-  //     fetchProductsData(page + 1);
-  //   }
-  // }, [loading, hasMore, page, fetchProductsData]);
 
   // Create a stable favorite toggle function
   const handleFavoriteClick = useCallback((productId) => {
@@ -723,7 +653,7 @@ const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) 
       const product = products.find((p) => p.id === productId);
       if (product) onAddToFavorites(product);
     }
-  }, [onAddToFavorites, products]); // Removed favoriteState from dependencies
+  }, [onAddToFavorites, products]);
 
   // Ensure favoriteState is always an array before using it
   const safeFavoriteState = Array.isArray(favoriteState) 
@@ -737,47 +667,53 @@ const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) 
     return safeFavoriteState.includes(productId);
   }, [safeFavoriteState]);
 
-  // Group products and apply search filter
-  const allMen = products.filter((p) => p.category === "men");
-  const allWomen = products.filter((p) => p.category === "women");
-  const allKids = products.filter((p) => p.category === "kids");
-
-  // Apply client-side search filter for better results
-  const filteredMen = searchQuery.trim() !== "" 
-    ? allMen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allMen;
-  const filteredWomen = searchQuery.trim() !== "" 
-    ? allWomen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allWomen;
-  const filteredKids = searchQuery.trim() !== "" 
-    ? allKids.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allKids;
-
-  // Show limited products (3 initially) or all based on state
-  // When searching, show all results, otherwise limit to 3
-// Always show all products, but apply search filtering
-const men = searchQuery.trim() !== "" ? filteredMen : filteredMen;
-const women = searchQuery.trim() !== "" ? filteredWomen : filteredWomen;
-const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
+  // Group products by category and apply search filter
+  const getProductsByCategory = useCallback((categoryName) => {
+    const categoryProducts = products.filter((p) => p.category === categoryName);
+    
+    // Apply search filter if provided
+    if (searchQuery.trim() !== "") {
+      return categoryProducts.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return categoryProducts;
+  }, [products, searchQuery]);
 
   // Calculate total filtered results for search display
-  const totalFilteredResults = filteredMen.length + filteredWomen.length + filteredKids.length;
+  const totalFilteredResults = searchQuery.trim() !== "" 
+    ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length
+    : products.length;
 
   // Loading state
-  if (loading && products.length === 0) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Our Products</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-red-700 rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-700">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
           </div>
-          
-          <div className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto pb-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <SkeletonLoader key={i} />
-            ))}
-          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Error</h2>
+          <p className="text-gray-600 mb-6 text-sm">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
@@ -813,7 +749,7 @@ const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
         </Suspense>
 
         {/* Categories */}
-        <CategoryNav />
+        <CategoryNav categories={categories} />
 
         {/* Search Bar */}
         <SearchBar 
@@ -851,77 +787,31 @@ const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
         </div>
 
         <div className="max-w-7xl mx-auto px-4">
-          {/* Men Section */}
-          {filteredMen.length > 0 && (
-            <div id="men-section">
-              <HorizontallyScrollableSection
-                title="Men's Collection"
-                count={filteredMen.length}
-                products={men}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/men"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
-
-          {/* Women Section */}
-          {filteredWomen.length > 0 && (
-            <div id="women-section">
-              <HorizontallyScrollableSection
-                title="Women's Collection"
-                count={filteredWomen.length}
-                products={women}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/women"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
-
-          {/* Kids Section */}
-          {filteredKids.length > 0 && (
-            <div id="kids-section">
-              <HorizontallyScrollableSection
-                title="Kids' Collection"
-                count={filteredKids.length}
-                products={kids}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/kids"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
+          {/* Render category sections dynamically */}
+          {categories?.map((category) => {
+            const categoryProducts = getProductsByCategory(category.name);
+            
+            // Only render sections that have products
+            if (categoryProducts.length > 0) {
+              return (
+                <div key={category.id} id={`${category.name}-section`}>
+                  <HorizontallyScrollableSection
+                    title={`${category.name}'s Collection`}
+                    count={categoryProducts.length}
+                    products={categoryProducts}
+                    onAddToCart={onAddToCart}
+                    onAddToFavorites={handleFavoriteClick}
+                    isFav={isProductFavorite}
+                    categoryRoute={`/${category.name}`}
+                    loading={isLoading}
+                  />
+                </div>
+              );
+            }
+            
+            return null;
+          }) || []}
         </div>
-
-        {/* Load More Button */}
-        {/* {hasMore && (
-          <div className="flex justify-center my-8">
-            <button
-              onClick={loadMore}
-              disabled={loading}
-              className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </>
-              ) : (
-                "Load More Products"
-              )}
-            </button>
-          </div>
-        )} */}
       </div>
     </ErrorBoundary>
   );
