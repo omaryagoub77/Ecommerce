@@ -24,7 +24,7 @@ function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-indigo-100 p-4">
+    <div className=" flex items-center justify-center bg-gradient-to-br ">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-md">
         <div className="p-1 bg-gradient-to-r from-red-500 to-indigo-300"></div>
         <div className="p-8">

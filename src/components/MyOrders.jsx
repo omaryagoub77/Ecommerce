@@ -23,63 +23,69 @@ const MyOrders = () => {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState(null);
   const [removeOrderId, setRemoveOrderId] = useState(null);
+  
   // Add these state variables near the top of the component
-const [orderMessages, setOrderMessages] = useState({});
-const [isSending, setIsSending] = useState(false);
+  const [orderMessages, setOrderMessages] = useState({});
+  // Change isSending from boolean to an object to track sending state per order
+  const [isSending, setIsSending] = useState({});
 
-// Add this function to handle sending messages
-const handleSendMessage = async (orderId) => {
-  const message = orderMessages[orderId];
-  if (!message || !message.trim()) {
-    setErrorMessage("Message cannot be empty");
-    return;
-  }
+  // Add this function to handle sending messages
+  const handleSendMessage = async (orderId) => {
+    const message = orderMessages[orderId];
+    if (!message || !message.trim()) {
+      setErrorMessage("Message cannot be empty");
+      return;
+    }
 
-  setIsSending(true);
-  try {
-    await addDoc(collection(db, "orderMessages"), {
-      orderId,
-      message: message.trim(),
-      timestamp: serverTimestamp(),
-      sender: "customer"
+    // Set sending state for this specific order
+    setIsSending(prev => ({ ...prev, [orderId]: true }));
+    
+    try {
+      await addDoc(collection(db, "orderMessages"), {
+        orderId,
+        message: message.trim(),
+        timestamp: serverTimestamp(),
+        sender: "customer"
+      });
+
+      // Clear the message for this order
+      setOrderMessages(prev => {
+        const newMessages = { ...prev };
+        delete newMessages[orderId];
+        return newMessages;
+      });
+
+      setMessage("Message sent successfully!");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setErrorMessage("Failed to send message.");
+    } finally {
+      // Clear sending state for this order
+      setIsSending(prev => {
+        const newSendingState = { ...prev };
+        delete newSendingState[orderId];
+        return newSendingState;
+      });
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "short",
     });
+  };
 
-    // Clear the message for this order
-    setOrderMessages(prev => {
-      const newMessages = { ...prev };
-      delete newMessages[orderId];
-      return newMessages;
-    });
-
-    setMessage("Message sent successfully!");
-  } catch (error) {
-    console.error("Error sending message:", error);
-    setErrorMessage("Failed to send message.");
-  } finally {
-    setIsSending(false);
-  }
-};
-
-const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "short",
-  });
-};
-
-
-// Add this function to handle message input changes
-const handleMessageChange = (orderId, value) => {
-  setOrderMessages(prev => ({
-    ...prev,
-    [orderId]: value
-  }));
-};
-
-
+  // Add this function to handle message input changes
+  const handleMessageChange = (orderId, value) => {
+    setOrderMessages(prev => ({
+      ...prev,
+      [orderId]: value
+    }));
+  };
 
   // store active firestore listeners keyed by local order id
   const listenersRef = useRef({});
@@ -337,8 +343,6 @@ const handleMessageChange = (orderId, value) => {
     }
   };
 
-
-
   // Clear messages after 3 seconds
   useEffect(() => {
     if (message || errorMessage) {
@@ -486,35 +490,36 @@ const handleMessageChange = (orderId, value) => {
                 </div>
 
               
-<div className="p-5 border-t border-gray-100 w-full">
-  <div className="mb-2">
-    <label htmlFor={`message-${order.id}`} className="block text-sm font-medium text-gray-700 mb-1">
-      Message to Delivery
-    </label>
-    <textarea
-      id={`message-${order.id}`}
-      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-      placeholder="Type your message here..."
-      value={orderMessages[order.id] || ''}
-      onChange={(e) => handleMessageChange(order.id, e.target.value)}
-      rows={3}
-    />
-  </div>
-  <button
-    onClick={() => handleSendMessage(order.id)}
-    disabled={isSending || !orderMessages[order.id]?.trim()}
-    className="mt-2 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-  >
-    {isSending ? (
-      <>
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-        Sending...
-      </>
-    ) : (
-      "Send Message"
-    )}
-  </button>
-</div>
+                <div className="p-5 border-t border-gray-100 w-full">
+                  <div className="mb-2">
+                    <label htmlFor={`message-${order.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+                      Message to Delivery
+                    </label>
+                    <textarea
+                      id={`message-${order.id}`}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="Type your message here..."
+                      value={orderMessages[order.id] || ''}
+                      onChange={(e) => handleMessageChange(order.id, e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSendMessage(order.id)}
+                    // Check if this specific order is sending and if message is empty
+                    disabled={isSending[order.id] || !orderMessages[order.id]?.trim()}
+                    className="mt-2 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    {isSending[order.id] ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Message"
+                    )}
+                  </button>
+                </div>
               </motion.div>
             );
           })}

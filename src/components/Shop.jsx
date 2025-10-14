@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef } from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo, useEffect, useState, useCallback, useReducer, Suspense, lazy, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, startAfter } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { optimizeImageUrl, imagePreloader } from '../utils/imageUtils';
-import { getOptimizedImageSrc, preloadCriticalImages } from '../utils/optimizedImages';
-import performanceMonitor from '../utils/performanceMonitor';
 
 // Aggressive dynamic imports to reduce initial bundle size
 const HeroSlider = lazy(() => import('./HeroSlider'));
@@ -232,9 +230,9 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
-    <div className="group bg-white rounded-xl shadow-sm overflow-hidden transition-shadow duration-300 hover:shadow-xl border border-gray-100 flex  flex-col h-[90%]">
+    <div className="group bg-white rounded-xl shadow-sm overflow-hidden transition-shadow duration-300 hover:shadow-xl border border-gray-100 flex flex-col h-[90%]">
       {/* Image Container */}
-      <div className="relative  overflow-hidden bg-gray-50 aspect-square">
+      <div className="relative overflow-hidden bg-gray-50 aspect-square">
         <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
           {primaryImage ? (
             <LazyLoadImage
@@ -286,11 +284,11 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
 
       {/* Product Info */}
       <div className="p-1 flex flex-col flex-grow">
-        <h3 className="font-semibold text-gray-900 line  text-sm sm:text-base min-h-[2.5rem]">
+        <h3 className="font-semibold text-gray-900 line text-sm sm:text-base min-h-[2.5rem]">
           {product.name}
         </h3>
         
-        <div className="flex items-center justify-between   border-gray-100">
+        <div className="flex items-center justify-between border-gray-100">
           <div className="flex flex-col">
             {originalPrice > discountedPrice && (
               <span className="line-through text-xs text-gray-400">
@@ -413,10 +411,10 @@ const HorizontallyScrollableSection = React.memo(({
       </div>
       
       {/* Show More Button */}
-      <div className="flex justify-end ">
+      <div className="flex justify-end">
         <Link
           to={categoryRoute}
-          className="px-6 py-3   text-red-500 rounded-lg hover:drop-shadow-2xl hover:text-red-600 transition-all font-semibold inline-flex items-center space-x-2"
+          className="px-6 py-3 text-red-500 rounded-lg hover:drop-shadow-2xl hover:text-red-600 transition-all font-semibold inline-flex items-center space-x-2"
         >
           <span>View All {title}</span>
           <ChevronRight className="w-5 h-5" />
@@ -472,8 +470,8 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
   );
 });
 
-// Category Navigation Component with optimized images
-const CategoryNav = React.memo(() => {
+// Category Navigation Component with optimized images and scroll functionality
+const CategoryNav = React.memo(({ onCategoryClick }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -492,6 +490,31 @@ const CategoryNav = React.memo(() => {
     fetchCategoriesData();
   }, []);
 
+  const handleCategoryClick = (categoryName) => {
+    // Convert to lowercase and replace spaces with hyphens for the ID
+    const categoryId = categoryName.toLowerCase().replace(/\s+/g, '-');
+    const element = document.getElementById(`${categoryId}-section`);
+    
+    if (element) {
+      // Scroll to the category section
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+      
+      // Add a highlight effect
+      element.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+      setTimeout(() => {
+        element.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+      }, 2000);
+      
+      // Call the parent's onCategoryClick if provided
+      if (onCategoryClick) {
+        onCategoryClick(categoryName);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-10">
@@ -509,7 +532,11 @@ const CategoryNav = React.memo(() => {
       
       <div className="flex justify-center overflow-x-auto gap-6 sm:gap-8 pb-4 scrollbar-hide">
         {categories.map((cat) => (
-          <div key={cat.id} className="flex flex-col items-center group cursor-pointer flex-shrink-0">
+          <div 
+            key={cat.id} 
+            className="flex flex-col items-center group cursor-pointer flex-shrink-0"
+            onClick={() => handleCategoryClick(cat.name)}
+          >
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:scale-105 border-4 border-white shadow-lg bg-gradient-to-br from-gray-100 to-gray-200">
               {cat.imageUrl ? (
                 <LazyLoadImage
@@ -538,6 +565,8 @@ const CategoryNav = React.memo(() => {
 // Main Component
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [categories, setCategories] = useState([]);
+  const location = useLocation();
   const {
     products,
     loading,
@@ -567,6 +596,44 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     const savedFavorites = getFavoritesFromStorage();
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
   }, []);
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      try {
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategoriesData();
+  }, []);
+
+  // Check for category in URL hash and scroll to it
+  useEffect(() => {
+    if (location.hash) {
+      const categoryId = location.hash.substring(1); // Remove the # character
+      const element = document.getElementById(`${categoryId}-section`);
+      
+      if (element) {
+        // Wait a bit for content to load
+        setTimeout(() => {
+          element.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+          });
+          
+          // Add a highlight effect
+          element.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+          }, 2000);
+        }, 500);
+      }
+    }
+  }, [location.hash, categories]);
 
   // Optimized fetch function with caching - reduce main thread blocking
   const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
@@ -681,30 +748,59 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     return safeFavoriteState.includes(productId);
   }, [safeFavoriteState]);
 
-  // Group products and apply search filter
-  const allMen = products.filter((p) => p.category === "men");
-  const allWomen = products.filter((p) => p.category === "women");
-  const allKids = products.filter((p) => p.category === "kids");
+  // Group products by category dynamically
+  const productsByCategory = useMemo(() => {
+    const groups = {};
+    products.forEach((product) => {
+      const category = product.category || "Uncategorized";
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(product);
+    });
+    return groups;
+  }, [products]);
 
-  // Apply client-side search filter for better results
-  const filteredMen = searchQuery.trim() !== "" 
-    ? allMen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allMen;
-  const filteredWomen = searchQuery.trim() !== "" 
-    ? allWomen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allWomen;
-  const filteredKids = searchQuery.trim() !== "" 
-    ? allKids.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : allKids;
+  // Apply search filter to each category
+  const filteredProductsByCategory = useMemo(() => {
+    const filteredGroups = {};
+    Object.keys(productsByCategory).forEach(category => {
+      if (searchQuery.trim() !== "") {
+        filteredGroups[category] = productsByCategory[category].filter(p => 
+          p.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      } else {
+        filteredGroups[category] = productsByCategory[category];
+      }
+    });
+    return filteredGroups;
+  }, [productsByCategory, searchQuery]);
 
-  // Show limited products (3 initially) or all based on state
-  // When searching, show all results, otherwise limit to 3
-  const men = searchQuery.trim() !== "" ? filteredMen : filteredMen;
-  const women = searchQuery.trim() !== "" ? filteredWomen : filteredWomen;
-  const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
+  // Calculate total filtered results
+  const totalFilteredResults = useMemo(() => {
+    return Object.values(filteredProductsByCategory).reduce((total, products) => total + products.length, 0);
+  }, [filteredProductsByCategory]);
 
-  // Calculate total filtered results for search display
-  const totalFilteredResults = filteredMen.length + filteredWomen.length + filteredKids.length;
+  // Handle category click from navigation
+  const handleCategoryClick = useCallback((categoryName) => {
+    // Convert to lowercase and replace spaces with hyphens for the ID
+    const categoryId = categoryName.toLowerCase().replace(/\s+/g, '-');
+    const element = document.getElementById(`${categoryId}-section`);
+    
+    if (element) {
+      // Scroll to the category section
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+      
+      // Add a highlight effect
+      element.classList.add('ring-4', 'ring-red-500', 'ring-opacity-50');
+      setTimeout(() => {
+        element.classList.remove('ring-4', 'ring-red-500', 'ring-opacity-50');
+      }, 2000);
+    }
+  }, []);
 
   // Loading state
   if (loading && products.length === 0) {
@@ -748,10 +844,10 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         </Suspense>
 
         {/* Categories */}
-        <CategoryNav />
+        <CategoryNav onCategoryClick={handleCategoryClick} />
 
         {/* Search Bar */}
-        <div className="  py-1">
+        <div className="py-1">
           <SearchBar 
             searchQuery={searchQuery} 
             setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
@@ -788,53 +884,32 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         </div>
 
         <div className="max-w-7xl mx-auto px-4">
-          {/* Men Section */}
-          {filteredMen.length > 0 && (
-            <div id="men-section">
-              <HorizontallyScrollableSection
-                title="Men's Collection"
-                count={filteredMen.length}
-                products={men}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/men"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
-
-          {/* Women Section */}
-          {filteredWomen.length > 0 && (
-            <div id="women-section">
-              <HorizontallyScrollableSection
-                title="Women's Collection"
-                count={filteredWomen.length}
-                products={women}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/women"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
-
-          {/* Kids Section */}
-          {filteredKids.length > 0 && (
-            <div id="kids-section">
-              <HorizontallyScrollableSection
-                title="Kids' Collection"
-                count={filteredKids.length}
-                products={kids}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={handleFavoriteClick}
-                isFav={isProductFavorite}
-                categoryRoute="/kids"
-                loading={loading && products.length === 0}
-              />
-            </div>
-          )}
+          {/* Dynamic Category Sections */}
+          {categories.map(category => {
+            const categoryProducts = filteredProductsByCategory[category.name] || [];
+            
+            if (categoryProducts.length === 0) {
+              return null;
+            }
+            
+            // Create a consistent ID for the section
+            const categoryId = category.name.toLowerCase().replace(/\s+/g, '-');
+            
+            return (
+              <div key={category.id} id={`${categoryId}-section`} className="scroll-mt-20">
+                <HorizontallyScrollableSection
+                  title={`${category.name}'s Collection`}
+                  count={categoryProducts.length}
+                  products={categoryProducts}
+                  onAddToCart={onAddToCart}
+                  onAddToFavorites={handleFavoriteClick}
+                  isFav={isProductFavorite}
+                  categoryRoute={`/${category.name.toLowerCase()}`}
+                  loading={loading && products.length === 0}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* Load More Button */}
