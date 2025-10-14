@@ -270,34 +270,29 @@ const Kids = ({ onAddToCart }) => {
     fetchKidsProducts();
   }, []);
 
-  // Toggle favorite for specific product with localStorage persistence
-  const handleFavoriteClick = useCallback((productId) => {
-    // Ensure favoriteState is always an array with multiple safety checks
-    const currentFavorites = Array.isArray(favoriteState) 
-      ? [...favoriteState] 
-      : (typeof favoriteState === 'object' && favoriteState !== null) 
-        ? Object.values(favoriteState) 
-        : [];
-    
-    // Check if product is already in favorites
-    const isFavorite = currentFavorites.includes(productId);
-    
-    let updatedFavorites;
-    if (isFavorite) {
-      // Remove from favorites
-      updatedFavorites = currentFavorites.filter(id => id !== productId);
-    } else {
-      // Add to favorites
-      updatedFavorites = [...currentFavorites, productId];
-    }
-    
-    // Save to localStorage
-    saveFavoritesToStorage(updatedFavorites);
-    
-    // Update state
-    dispatch({ type: 'SET_FAVORITE_STATE', payload: updatedFavorites });
-  }, [favoriteState]);
-
+// Toggle favorite for specific product with localStorage persistence
+const handleFavoriteClick = useCallback((productId) => {
+  // Get the latest favorites directly from localStorage to avoid stale state
+  const currentFavorites = getFavoritesFromStorage();
+  
+  // Check if product is already in favorites
+  const isFavorite = currentFavorites.includes(productId);
+  
+  let updatedFavorites;
+  if (isFavorite) {
+    // Remove from favorites
+    updatedFavorites = currentFavorites.filter(id => id !== productId);
+  } else {
+    // Add to favorites
+    updatedFavorites = [...currentFavorites, productId];
+  }
+  
+  // Save to localStorage first
+  saveFavoritesToStorage(updatedFavorites);
+  
+  // Then update state to ensure consistency
+  dispatch({ type: 'SET_FAVORITE_STATE', payload: updatedFavorites });
+}, []); // Empty dependency array to prevent stale closures
   // Ensure favoriteState is always an array before using it
   const safeFavoriteState = Array.isArray(favoriteState) 
     ? favoriteState 
