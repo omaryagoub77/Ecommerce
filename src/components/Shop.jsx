@@ -51,10 +51,10 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center p-6 bg-white rounded-2xl shadow-xl max-w-md mx-auto">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+              <WifiOff className="w-8 h-8 text-red-600" />
             </div>
             <h2 className="text-xl font-bold text-red-600 mb-3">Something went wrong</h2>
             <p className="text-gray-600 mb-6">We're experiencing technical difficulties. Please try again later.</p>
@@ -87,9 +87,13 @@ const debounce = (func, wait) => {
 
 // State reducer for better performance
 const initialState = {
+  products: [],
   loading: false,
   searchQuery: "",
   favoriteState: [], // Initialize as empty array
+  lastVisible: null,
+  hasMore: true,
+  page: 1,
   viewMode: "grid",
   // Add section show more states
   showAllMen: false,
@@ -99,6 +103,8 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'SET_PRODUCTS':
+      return { ...state, products: action.payload };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     case 'SET_SEARCH_QUERY':
@@ -106,8 +112,16 @@ function reducer(state, action) {
     case 'SET_FAVORITE_STATE':
       // Ensure favoriteState is always an array
       return { ...state, favoriteState: Array.isArray(action.payload) ? action.payload : [] };
+    case 'SET_LAST_VISIBLE':
+      return { ...state, lastVisible: action.payload };
+    case 'SET_HAS_MORE':
+      return { ...state, hasMore: action.payload };
+    case 'SET_PAGE':
+      return { ...state, page: action.payload };
     case 'SET_VIEW_MODE':
       return { ...state, viewMode: action.payload };
+    case 'RESET_PAGINATION':
+      return { ...state, page: 1, lastVisible: null, hasMore: true, products: [] };
     case 'TOGGLE_SHOW_ALL_MEN':
       return { ...state, showAllMen: !state.showAllMen };
     case 'TOGGLE_SHOW_ALL_WOMEN':
@@ -210,113 +224,91 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   
   const originalPrice = parseFloat(product.price);
   const discountedPrice = parseFloat(product.newPrice);
+  const discountPercent = originalPrice > discountedPrice 
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0;
 
   // Get the primary image URL (first image in the array)
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
-    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full w-40 sm:w-48 md:w-56 flex-shrink-0">
+    <div className="group bg-white rounded-xl shadow-sm overflow-hidden transition-shadow duration-300 hover:shadow-xl border border-gray-100 flex  flex-col h-[90%]">
       {/* Image Container */}
-      <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
+      <div className="relative  overflow-hidden bg-gray-50 aspect-square">
         <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
           {primaryImage ? (
             <LazyLoadImage
               src={optimizeImageUrl(primaryImage, 75)}
               alt={product.name}
               effect=""
-              className={`w-full h-full object-cover transition-opacity duration-200 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
               placeholderSrc="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkNGQ0ZDIi8+Cjwvc3ZnPgo="
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-              <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-xs">No Image</span>
-              </div>
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <span className="text-gray-400 text-sm">No Image</span>
             </div>
           )}
         </Link>
         
-        {/* Image Loading Placeholder */}
-        {!imageLoaded && !imageError && primaryImage && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
-            <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+        {/* Discount Badge */}
+        {discountPercent > 0 && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+            {discountPercent}% OFF
           </div>
         )}
         
-        {/* Image Error Fallback */}
-        {imageError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-2">
-            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-1" />
-            <p className="text-gray-500 text-xs">Image unavailable</p>
-          </div>
-        )}
-        
-        {/* Action Buttons */}
-        <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-          <button
-            onClick={() => onAddToFavorites(product.id)}
-            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
-              isFav
-                ? "bg-pink-100 text-pink-600"
-                : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
+        {/* Favorite Button */}
+        <button
+          onClick={() => onAddToFavorites(product.id)}
+          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-lg ${
+            isFav
+              ? "bg-red-600 text-white"
+              : "bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-600"
+          }`}
+        >
+          <Heart
+            className={`w-4 h-4 transition-all duration-200 ${
+              isFav ? "fill-current" : ""
             }`}
-          >
-            <Heart
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
-                isFav ? "fill-current" : ""
-              }`}
-            />
-          </button>
-        </div>
+          />
+        </button>
+        
+        {!imageLoaded && !imageError && primaryImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+          </div>
+        )}
       </div>
 
       {/* Product Info */}
-      <div className="p-2 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
-            {product.name}
-          </h3>
-        </div>
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="font-semibold text-gray-900 line mb-2 text-sm sm:text-base min-h-[2.5rem]">
+          {product.name}
+        </h3>
         
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex items-center space-x-1">
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+          <div className="flex flex-col">
             {originalPrice > discountedPrice && (
-              <span className="line-through text-xs text-gray-500">
+              <span className="line-through text-xs text-gray-400">
                 ${originalPrice.toFixed(2)}
               </span>
             )}
-            <span className="text-sm sm:text-base font-bold text-red-700">
+            <span className="text-lg font-bold text-red-600">
               ${discountedPrice.toFixed(2)}
             </span>
-            {/* Discount Badge */}
-            {originalPrice > discountedPrice && (
-              <div
-                className="
-                  line-through
-                  bg-pink-100 text-pink-600 
-                  px-2 py-1 
-                  rounded-full 
-                  text-xs font-bold 
-
-                  sm:px-1.5 sm:py-0.5 sm:text-[11px] 
-                  max-[500px]:px-1 max-[500px]:py-0.5 max-[500px]:text-[10px] 
-                  max-[400px]:px-0.5 max-[400px]:py-0.5 max-[400px]:text-[9px]
-                "
-              >
-                {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}%
-              </div>
-            )}
           </div>
           
           <button
             onClick={() => onAddToCart(product)}
-            className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg text-sm font-medium flex items-center space-x-1"
             aria-label={`Add ${product.name} to cart`}
           >
-            <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
+            <ShoppingCart className="w-4 h-4" />
+            <span className="hidden sm:inline">Add</span>
           </button>
         </div>
       </div>
@@ -332,38 +324,14 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
 
 // Skeleton Loader Component
 const SkeletonLoader = () => (
-  <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full w-40 sm:w-48 md:w-56 flex-shrink-0">
-    {/* Image Container */}
-    <div className="relative overflow-hidden bg-gray-200 aspect-[1/1]">
-      {/* Discount Badge Placeholder */}
-      <div className="absolute top-2 left-2 bg-gray-300 rounded-full px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 w-12 h-4 max-[450px]:w-10 max-[450px]:h-3"></div>
-
-      {/* Action Buttons Placeholder */}
-      <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
-      </div>
-    </div>
-
-    {/* Product Info */}
-    <div className="p-2 flex flex-col flex-grow">
-      {/* Title & Category Badge */}
-      <div className="flex justify-between items-start mb-1">
-        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-        <div className="h-4 bg-gray-300 rounded-full w-12"></div>
-      </div>
-      
-      {/* Description Lines */}
-      <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
-      <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
-
-      {/* Price & Cart Button */}
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex items-center space-x-1">
-          <div className="h-3 bg-gray-300 rounded w-8"></div>
-          <div className="h-5 bg-gray-300 rounded w-14"></div>
-        </div>
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 bg-gray-300 rounded-lg w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
+  <div className="bg-white rounded-xl shadow-sm overflow-hidden animate-pulse border border-gray-100">
+    <div className="aspect-square bg-gray-200"></div>
+    <div className="p-4">
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+      <div className="flex justify-between items-center">
+        <div className="h-6 bg-gray-200 rounded w-20"></div>
+        <div className="h-9 bg-gray-200 rounded w-16"></div>
       </div>
     </div>
   </div>
@@ -394,8 +362,8 @@ const HorizontallyScrollableSection = React.memo(({
   
   return (
     <div className="py-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">{title}</h2>
         <div className="flex items-center space-x-3">
           <span className="bg-red-100 text-red-800 text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full">
             {count} {count === 1 ? "item" : "items"}
@@ -422,34 +390,36 @@ const HorizontallyScrollableSection = React.memo(({
       <div className="relative">
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto overflow-y-hidden gap-3 sm:gap-4 pb-4 scrollbar-hide"
+          className="flex overflow-x-auto overflow-y-hidden gap-4 sm:gap-6 pb-1 scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
+            Array.from({ length: 5 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))
           ) : (
-            products?.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={onAddToCart}
-                onAddToFavorites={onAddToFavorites}
-                isFav={isFav(product.id)}
-              />
-            )) || []
+            products.map((product) => (
+              <div key={product.id} className="flex-shrink-0 w-40 sm:w-48 md:w-56">
+                <ProductCard
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onAddToFavorites={onAddToFavorites}
+                  isFav={isFav(product.id)}
+                />
+              </div>
+            ))
           )}
         </div>
       </div>
       
       {/* Show More Button */}
-      <div className="flex justify-end mt-4">
+      <div className="flex justify-end ">
         <Link
           to={categoryRoute}
-          className="text-red-400 hover:text-red-500 transition-all duration-300 hover:drop-shadow-lg font-medium inline-block"
+          className="px-6 py-3   text-red-500 rounded-lg hover:drop-shadow-2xl hover:text-red-600 transition-all font-semibold inline-flex items-center space-x-2"
         >
-          View All {title}
+          <span>View All {title}</span>
+          <ChevronRight className="w-5 h-5" />
         </Link>
       </div>
     </div>
@@ -465,38 +435,35 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
   );
 
   return (
-    <div className="w-full mb-10 mx-auto px-4">
+    <div className="w-full mb-8 mx-auto px-4">
       <div className="max-w-2xl mx-auto">
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search for products, brands and more..."
             defaultValue={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-9 py-3 border border-gray-300 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-300 text-sm"
+            className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-300 text-sm"
             aria-label="Search products"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center"
               aria-label="Clear search"
             >
-              <X className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600" />
+              <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
             </button>
           )}
         </div>
         
         {searchQuery.trim() !== "" && (
-          <div className="mt-2 text-center">
+          <div className="mt-3 text-center">
             <p className="text-gray-700 text-sm">
-              Searching for <span className="font-semibold text-red-700">"{searchQuery}"</span>
-            </p>
-            <p className="text-gray-600 text-xs">
-              Found <span className="font-bold">{filteredCount}</span> result{filteredCount !== 1 ? "s" : ""}
+              Showing <span className="font-bold text-red-600">{filteredCount}</span> result{filteredCount !== 1 ? "s" : ""} for <span className="font-semibold">"{searchQuery}"</span>
             </p>
           </div>
         )}
@@ -506,40 +473,63 @@ const SearchBar = React.memo(({ searchQuery, setSearchQuery, filteredCount }) =>
 });
 
 // Category Navigation Component with optimized images
-const CategoryNav = React.memo(({ categories }) => {
+const CategoryNav = React.memo(() => {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategoriesData = async () => {
+      try {
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoriesData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-spin h-16 w-16 border-4 border-red-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">Shop by Category</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Shop From Top Categories</h2>
         <p className="text-gray-600 text-sm max-w-2xl mx-auto">Browse our collections and find the perfect items for you</p>
       </div>
       
-      <div className="flex justify-center gap-4 sm:gap-8 md:gap-16">
-        {categories?.map((cat) => (
-          <div key={cat.id} className="flex flex-col items-center group">
-            <button
-              onClick={() => {
-                const section = document.getElementById(`${cat.name}-section`);
-                section?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1 border-4 border-white shadow-lg"
-              aria-label={`View ${cat.name} products`}
-            >
-              <LazyLoadImage
-                src={cat.imageUrl || (cat.name ? `/images/categories/${cat.name}.jpg` : '/placeholder.jpg')}
-                alt={`${cat.name} category`}
-                effect="blur"
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-            <span className="mt-2 text-sm sm:text-base font-medium text-gray-800 capitalize group-hover:text-red-700 transition-colors">
+      <div className="flex justify-center overflow-x-auto gap-6 sm:gap-8 pb-4 scrollbar-hide">
+        {categories.map((cat) => (
+          <div key={cat.id} className="flex flex-col items-center group cursor-pointer flex-shrink-0">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden transition-all duration-300 group-hover:shadow-xl group-hover:scale-105 border-4 border-white shadow-lg bg-gradient-to-br from-gray-100 to-gray-200">
+              {cat.imageUrl ? (
+                <LazyLoadImage
+                  src={cat.imageUrl}
+                  alt={cat.name}
+                  effect="blur"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+                  <span className="text-3xl">{cat.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+            <span className="mt-3 text-xs sm:text-sm font-medium text-gray-700 capitalize group-hover:text-red-600 transition-colors text-center">
               {cat.name}
             </span>
           </div>
-        )) || []}
+        ))}
       </div>
     </div>
   );
@@ -549,20 +539,20 @@ const CategoryNav = React.memo(({ categories }) => {
 const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const {
+    products,
     loading,
     searchQuery,
     favoriteState,
+    lastVisible,
+    hasMore,
+    page,
     viewMode,
     showAllMen,
     showAllWomen,
     showAllKids
   } = state;
   
-  // State for products and categories
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const pageSize = 100;
 
   // Create a ref to hold the latest favoriteState
   const favoriteStateRef = useRef(favoriteState);
@@ -578,40 +568,63 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     dispatch({ type: 'SET_FAVORITE_STATE', payload: savedFavorites });
   }, []);
 
-  // Fetch products and categories
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Fetch categories
-        const categoriesData = await fetchCategories();
-        setCategories(categoriesData);
-        
-        // Fetch products for each category
-        const categoryPromises = categoriesData.map(async (category) => {
-          const result = await fetchProducts({ category: category.name, pageSize: 100 });
-          return {
-            category: category.name,
-            products: result.products
-          };
-        });
-        
-        const categoryResults = await Promise.all(categoryPromises);
-        
-        // Combine all products
-        const allProducts = categoryResults.flatMap(result => result.products);
-        setProducts(allProducts);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load products. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Optimized fetch function with caching - reduce main thread blocking
+  const fetchProductsData = useCallback(async (pageNum = 1, search = searchQuery) => {
+    if (pageNum === 1) {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'RESET_PAGINATION' });
+    }
     
-    fetchData();
+    try {
+      const filters = {
+        pageSize: 100,
+        lastVisible: pageNum > 1 ? lastVisible : null
+      };
+      
+      // Declare the result variable first
+      let result;
+      
+      // Then assign the value to it
+      result = await new Promise((resolve) => {
+        const executeQuery = async () => {
+          const queryResult = await fetchProducts(filters);
+          resolve(queryResult);
+        };
+        
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(executeQuery, { timeout: 1000 });
+        } else {
+          setTimeout(executeQuery, 0);
+        }
+      });
+      
+      // NOW we can safely log the result
+      console.log("Fetched products:", result.products);
+      console.log("Product categories:", result.products.map(p => p.category));
+      console.log("Products with undefined category:", result.products.filter(p => !p.category));
+      
+      // Rest of your existing code...
+      if (pageNum === 1) {
+        dispatch({ type: 'SET_PRODUCTS', payload: result.products });
+      } else {
+        dispatch({ type: 'SET_PRODUCTS', payload: [...products, ...result.products] });
+      }
+      
+      dispatch({ type: 'SET_LAST_VISIBLE', payload: result.lastVisible });
+      dispatch({ type: 'SET_HAS_MORE', payload: result.hasMore });
+      dispatch({ type: 'SET_PAGE', payload: pageNum });
+      
+      // ... rest of the function
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [lastVisible, products]);
+  
+  // Initial fetch
+  useEffect(() => {
+    fetchProductsData();
   }, []);
 
   // Handle search query changes
@@ -620,6 +633,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     if (searchQuery.trim() !== "") {
       dispatch({ type: 'RESET_SHOW_ALL' });
     }
+    // Don't refetch on search - we'll filter client-side for better UX
   }, [searchQuery]);
 
   // Create a stable favorite toggle function
@@ -653,7 +667,7 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
       const product = products.find((p) => p.id === productId);
       if (product) onAddToFavorites(product);
     }
-  }, [onAddToFavorites, products]);
+  }, [onAddToFavorites, products]); // Removed favoriteState from dependencies
 
   // Ensure favoriteState is always an array before using it
   const safeFavoriteState = Array.isArray(favoriteState) 
@@ -667,53 +681,38 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
     return safeFavoriteState.includes(productId);
   }, [safeFavoriteState]);
 
-  // Group products by category and apply search filter
-  const getProductsByCategory = useCallback((categoryName) => {
-    const categoryProducts = products.filter((p) => p.category === categoryName);
-    
-    // Apply search filter if provided
-    if (searchQuery.trim() !== "") {
-      return categoryProducts.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return categoryProducts;
-  }, [products, searchQuery]);
+  // Group products and apply search filter
+  const allMen = products.filter((p) => p.category === "men");
+  const allWomen = products.filter((p) => p.category === "women");
+  const allKids = products.filter((p) => p.category === "kids");
+
+  // Apply client-side search filter for better results
+  const filteredMen = searchQuery.trim() !== "" 
+    ? allMen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allMen;
+  const filteredWomen = searchQuery.trim() !== "" 
+    ? allWomen.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allWomen;
+  const filteredKids = searchQuery.trim() !== "" 
+    ? allKids.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allKids;
+
+  // Show limited products (3 initially) or all based on state
+  // When searching, show all results, otherwise limit to 3
+  const men = searchQuery.trim() !== "" ? filteredMen : filteredMen;
+  const women = searchQuery.trim() !== "" ? filteredWomen : filteredWomen;
+  const kids = searchQuery.trim() !== "" ? filteredKids : filteredKids;
 
   // Calculate total filtered results for search display
-  const totalFilteredResults = searchQuery.trim() !== "" 
-    ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length
-    : products.length;
+  const totalFilteredResults = filteredMen.length + filteredWomen.length + filteredKids.length;
 
   // Loading state
-  if (isLoading) {
+  if (loading && products.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-red-700 rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-700">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-3">Error</h2>
-          <p className="text-gray-600 mb-6 text-sm">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Refresh Page
-          </button>
+          <div className="animate-spin h-16 w-16 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading products...</p>
         </div>
       </div>
     );
@@ -722,10 +721,10 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
   // Empty state
   if (products.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+            <WifiOff className="w-8 h-8 text-red-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-3">No Products Available</h2>
           <p className="text-gray-600 mb-6 text-sm">We couldn't find any products at the moment. Please check back later.</p>
@@ -742,21 +741,23 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
         <Suspense fallback={<div className="h-64 bg-gray-200 animate-pulse" />}>
           <HeroSlider />
         </Suspense>
 
         {/* Categories */}
-        <CategoryNav categories={categories} />
+        <CategoryNav />
 
         {/* Search Bar */}
-        <SearchBar 
-          searchQuery={searchQuery} 
-          setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
-          filteredCount={totalFilteredResults}
-        />
+        <div className="  py-1">
+          <SearchBar 
+            searchQuery={searchQuery} 
+            setSearchQuery={(query) => dispatch({ type: 'SET_SEARCH_QUERY', payload: query })}
+            filteredCount={totalFilteredResults}
+          />
+        </div>
 
         {/* View Mode Toggle - Hidden as we're using horizontal scroll */}
         <div className="max-w-7xl mx-auto px-4 mb-4 hidden">
@@ -787,31 +788,77 @@ const EnhancedProducts = ({ onAddToCart, onAddToFavorites, favorites = [] }) => 
         </div>
 
         <div className="max-w-7xl mx-auto px-4">
-          {/* Render category sections dynamically */}
-          {categories?.map((category) => {
-            const categoryProducts = getProductsByCategory(category.name);
-            
-            // Only render sections that have products
-            if (categoryProducts.length > 0) {
-              return (
-                <div key={category.id} id={`${category.name}-section`}>
-                  <HorizontallyScrollableSection
-                    title={`${category.name}'s Collection`}
-                    count={categoryProducts.length}
-                    products={categoryProducts}
-                    onAddToCart={onAddToCart}
-                    onAddToFavorites={handleFavoriteClick}
-                    isFav={isProductFavorite}
-                    categoryRoute={`/${category.name}`}
-                    loading={isLoading}
-                  />
-                </div>
-              );
-            }
-            
-            return null;
-          }) || []}
+          {/* Men Section */}
+          {filteredMen.length > 0 && (
+            <div id="men-section">
+              <HorizontallyScrollableSection
+                title="Men's Collection"
+                count={filteredMen.length}
+                products={men}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/men"
+                loading={loading && products.length === 0}
+              />
+            </div>
+          )}
+
+          {/* Women Section */}
+          {filteredWomen.length > 0 && (
+            <div id="women-section">
+              <HorizontallyScrollableSection
+                title="Women's Collection"
+                count={filteredWomen.length}
+                products={women}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/women"
+                loading={loading && products.length === 0}
+              />
+            </div>
+          )}
+
+          {/* Kids Section */}
+          {filteredKids.length > 0 && (
+            <div id="kids-section">
+              <HorizontallyScrollableSection
+                title="Kids' Collection"
+                count={filteredKids.length}
+                products={kids}
+                onAddToCart={onAddToCart}
+                onAddToFavorites={handleFavoriteClick}
+                isFav={isProductFavorite}
+                categoryRoute="/kids"
+                loading={loading && products.length === 0}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center my-8">
+            <button
+              onClick={() => fetchProductsData(page + 1)}
+              disabled={loading}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Loading...
+                </>
+              ) : (
+                "Load More Products"
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );

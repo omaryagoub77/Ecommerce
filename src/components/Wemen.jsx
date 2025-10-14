@@ -61,91 +61,96 @@ const saveFavoritesToStorage = (favorites) => {
   }
 };
 
-// Memoized Product Card Component
+// Memoized Product Card Component - Updated with the new design
 const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
   const originalPrice = parseFloat(product.price) || 0;
   const discountedPrice = parseFloat(product.newprice || product.newPrice) || originalPrice;
+  const discountPercent = originalPrice > discountedPrice 
+    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    : 0;
 
   // Get the primary image URL (first image in the array)
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : null;
 
   return (
-    <div className="group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100 flex flex-col h-full">
+    <div className="group bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl border border-gray-100 flex flex-col h-[90%]">
       {/* Image Container */}
-      <div className="relative overflow-hidden bg-gray-100 aspect-[1/1]">
-        {primaryImage ? (
-          <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
-          <img
-            src={primaryImage}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          </Link>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-500 text-xs">No Image</span>
+      <div className="relative overflow-hidden bg-gray-50 aspect-square">
+        <Link to={`/product/${product.id}`} aria-label={`View details for ${product.name}`}>
+          {primaryImage ? (
+            <img
+              src={primaryImage}
+              alt={product.name}
+              className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <span className="text-gray-400 text-sm">No Image</span>
             </div>
+          )}
+        </Link>
+        
+        {/* Discount Badge */}
+        {discountPercent > 0 && (
+          <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+            {discountPercent}% OFF
           </div>
         )}
         
-        {/* Action Buttons */}
-        <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-          <button
-            onClick={() => onAddToFavorites(product.id)}
-            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className={`p-1 sm:p-1.5 max-[450px]:p-1 rounded-full backdrop-blur-sm transition-all duration-300 shadow-sm ${
-              isFav
-                ? "bg-pink-100 text-pink-600"
-                : "bg-white/80 text-gray-600 hover:bg-pink-50 hover:text-pink-600"
+        {/* Favorite Button */}
+        <button
+          onClick={() => onAddToFavorites(product.id)}
+          aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 shadow-lg ${
+            isFav
+              ? "bg-red-600 text-white"
+              : "bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-600"
+          }`}
+        >
+          <Heart
+            className={`w-4 h-4 transition-all duration-200 ${
+              isFav ? "fill-current" : ""
             }`}
-          >
-            <Heart
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3 transition-all duration-200 ${
-                isFav ? "fill-current" : ""
-              }`}
-            />
-          </button>
-
-        </div>
-
-        {/* Discount Badge */}
-        {originalPrice > discountedPrice && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 rounded-full text-xs font-bold shadow-md z-10">
-            {Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)}% OFF
+          />
+        </button>
+        
+        {!imageLoaded && !imageError && primaryImage && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
           </div>
         )}
       </div>
 
       {/* Product Info */}
-      <div className="p-2 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-1">
-            {product.name}
-          </h3>
-          {/* <span className="inline-block bg-gray-100 text-gray-700 px-1 py-0.5 rounded-full text-xs font-medium capitalize">
-            {product.category}
-          </span> */}
-        </div>
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="font-semibold text-gray-900 line mb-2 text-sm sm:text-base min-h-[2.5rem]">
+          {product.name}
+        </h3>
         
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex items-center space-x-1">
+        <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+          <div className="flex flex-col">
             {originalPrice > discountedPrice && (
-              <span className="line-through text-xs text-gray-500">
+              <span className="line-through text-xs text-gray-400">
                 ${originalPrice.toFixed(2)}
               </span>
             )}
-            <span className="text-sm sm:text-base font-bold text-red-700">
+            <span className="text-lg font-bold text-red-600">
               ${discountedPrice.toFixed(2)}
             </span>
           </div>
           
           <button
             onClick={() => onAddToCart(product)}
-            className="p-1 sm:p-1.5 max-[450px]:p-1 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors shadow-sm"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg text-sm font-medium flex items-center space-x-1"
             aria-label={`Add ${product.name} to cart`}
           >
-            <ShoppingCart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 max-[450px]:w-3 max-[450px]:h-3`} />
+            <ShoppingCart className="w-4 h-4" />
+            <span className="hidden sm:inline">Add</span>
           </button>
         </div>
       </div>
@@ -159,40 +164,32 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
   );
 });
 
-// Skeleton Loader Component
+// Skeleton Loader Component - Updated to match the new ProductCard design
 const SkeletonLoader = () => (
-  <div className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-full">
+  <div className="bg-white rounded-xl shadow-sm overflow-hidden animate-pulse border border-gray-100 flex flex-col h-[90%]">
     {/* Image Container */}
-    <div className="relative overflow-hidden bg-gray-200 aspect-[1/1]">
+    <div className="relative overflow-hidden bg-gray-200 aspect-square">
       {/* Discount Badge Placeholder */}
-      <div className="absolute top-2 left-2 bg-gray-300 rounded-full px-1 py-0.5 sm:px-1.5 sm:py-0.5 max-[450px]:px-1 max-[450px]:py-0.5 w-12 h-4 max-[450px]:w-10 max-[450px]:h-3"></div>
+      <div className="absolute top-3 left-3 bg-gray-300 rounded-full px-3 py-1 w-12 h-6"></div>
 
       {/* Action Buttons Placeholder */}
-      <div className="absolute top-2 right-2 flex flex-col space-y-2 z-10">
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 rounded-full bg-gray-300 w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
+      <div className="absolute top-3 right-3 flex flex-col space-y-2 z-10">
+        <div className="p-2 rounded-full bg-gray-300 w-8 h-8"></div>
       </div>
     </div>
 
     {/* Product Info */}
-    <div className="p-2 flex flex-col flex-grow">
-      {/* Title & Category Badge */}
-      <div className="flex justify-between items-start mb-1">
-        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-        <div className="h-4 bg-gray-300 rounded-full w-12"></div>
-      </div>
+    <div className="p-3 flex flex-col flex-grow">
+      {/* Title */}
+      <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
       
-      {/* Description Lines */}
-      <div className="h-3 bg-gray-300 rounded w-full mb-1"></div>
-      <div className="h-3 bg-gray-300 rounded w-5/6 mb-2"></div>
-
       {/* Price & Cart Button */}
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex items-center space-x-1">
+      <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-200">
+        <div className="flex flex-col space-y-1">
           <div className="h-3 bg-gray-300 rounded w-8"></div>
           <div className="h-5 bg-gray-300 rounded w-14"></div>
         </div>
-        <div className="p-1 sm:p-1.5 max-[450px]:p-1 bg-gray-300 rounded-lg w-6 h-6 sm:w-7 sm:h-7 max-[450px]:w-5 max-[450px]:h-5"></div>
+        <div className="px-4 py-2 bg-gray-300 rounded-lg w-16 h-9"></div>
       </div>
     </div>
   </div>
@@ -341,7 +338,7 @@ const Women = ({ onAddToCart, searchQuery }) => {
             <p className="text-gray-600 max-w-2xl mx-auto text-sm">Discover our latest collection of premium products</p>
           </div>
           
-          <div className="grid gap-3 sm:gap-4 md:gap-6  sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
+          <div className="grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonLoader key={i} />
             ))}
@@ -382,7 +379,7 @@ const Women = ({ onAddToCart, searchQuery }) => {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6  sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4  bg-gray-50 ">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-gray-50">
           {products.map((product) => (
             <ProductCard
               key={product.id}
