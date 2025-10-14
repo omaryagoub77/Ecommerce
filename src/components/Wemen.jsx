@@ -127,12 +127,12 @@ const ProductCard = React.memo(({ product, onAddToCart, onAddToFavorites, isFav 
       </div>
 
       {/* Product Info */}
-      <div className="p-3 flex flex-col flex-grow">
-        <h3 className="font-semibold text-gray-900 line mb-2 text-sm sm:text-base min-h-[2.5rem]">
+      <div className="p-1 flex flex-col flex-grow">
+        <h3 className="font-semibold text-gray-900 line  text-sm sm:text-base min-h-[2.5rem]">
           {product.name}
         </h3>
         
-        <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+        <div className="flex items-center justify-between  border-gray-100">
           <div className="flex flex-col">
             {originalPrice > discountedPrice && (
               <span className="line-through text-xs text-gray-400">

@@ -172,7 +172,7 @@ export default function Header({ cartItemCount, onCartClick, isCartOpen }) {
       </div>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-[10px] left-[5px] right-[5px] bg-white rounded-[30px] shadow-xl border border-gray-200 z-40">
+      <nav className="md:hidden fixed bottom-[5px] left-[5px] right-[5px] bg-white rounded-[50px] shadow-xl border border-gray-200 z-40">
         <div className="flex justify-around items-center py-3 px-2">
           <NavLink
             to="/"
